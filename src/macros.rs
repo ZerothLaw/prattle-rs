@@ -20,7 +20,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
-//! #Utility Macros
+//! # Utility Macros
 //! 
 //! Three macros are provided:
 //!     add_null_assoc

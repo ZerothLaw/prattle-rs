@@ -20,7 +20,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
-//! #Parser trait and implementation
+//! # Parser
 //! 
 //! This is the core trait/implementation for a pratt parser. 
 //! The basic algorithm is as follows:

@@ -20,7 +20,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
-//! #Lexer trait and simple implementation
+//! # Lexer trait and simple implementation
 //! 
 //! ```rust
 //! use prattle::lexer::{Lexer, LexerVec};

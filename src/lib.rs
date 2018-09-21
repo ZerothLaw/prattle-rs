@@ -20,7 +20,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
-//! #Introduction
+//! # Introduction
 //! 
 //! This crate implements a configurable and general-purpose Pratt parser.
 //! 
@@ -65,13 +65,11 @@
 //! 
 //! ```rust
 //! # extern crate prattle;
-//! 
 //! # use prattle::lexer::{Lexer, LexerVec};
 //! # use prattle::node::Node;
 //! # use prattle::parser::{GeneralParser, Parser};
 //! # use prattle::spec::ParserSpec;
 //! # use prattle::precedence::PrecedenceLevel;
-//! 
 //! fn main() {
 //!     let mut spec = ParserSpec::new();
 //! 
@@ -127,10 +125,11 @@
 //! examples/token_spec.rs shows an example of how to implement the traits for 
 //! the token type so it can be used to lookup the parse rules (uses HashMap).
 //! 
-//! [1] Vaughan R. Pratt. 1973. Top down operator precedence. In Proceedings
-//! of the 1st annual ACM SIGACT-SIGPLAN symposium on Principles of 
-//! programming languages (POPL '73). ACM, New York, NY, USA, 41-51. 
-//! DOI=http://dx.doi.org/10.1145/512927.512931
+//! ## Citations
+//! > [1] Vaughan R. Pratt. 1973. Top down operator precedence. In Proceedings
+//! > of the 1st annual ACM SIGACT-SIGPLAN symposium on Principles of 
+//! > programming languages (POPL '73). ACM, New York, NY, USA, 41-51. 
+//! > DOI=http://dx.doi.org/10.1145/512927.512931
 //! 
 
 #[macro_use] extern crate failure;

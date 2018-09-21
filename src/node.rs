@@ -20,7 +20,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
-//! #Node enum
+//! # Node enum
 //! 
 //! This is a general purpose enum construct for representing parse trees. 
 //! 

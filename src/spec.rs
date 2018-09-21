@@ -20,7 +20,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
-//! #ParserSpec type
+//! # ParserSpec 
 //! The parser spec encapsulates the mapping of tokens with left/right binding 
 //! precedences, as well as the actual syntax rule execution (such as a recursive
 //! call to the parser.)

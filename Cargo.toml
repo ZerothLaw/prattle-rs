@@ -1,12 +1,14 @@
 [package]
 description = "General, configurable Pratt/TDOP parser."
 name = "prattle"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Tyler Laing <trinioler@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 keywords = ["parser", "tdop", "pratt", "grammar"]
 categories = ["parsing"]
+repository = "https://github.com/ZerothLaw/prattle-rs"
+documentation = "https://docs.rs/prattle/0.1.1/prattle/"
 
 [dependencies]
 failure = "0.1.2"
