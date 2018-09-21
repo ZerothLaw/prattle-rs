@@ -38,6 +38,7 @@ Cargo.toml line:
 ````
 [dependencies]
 prattle = "0.1.0"
+````
 
 ## License
 This project is licensed under the MIT License - see the license preamble in each file for details.
