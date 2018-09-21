@@ -1,0 +1,12 @@
+[package]
+description = "General, configurable Pratt/TDOP parser."
+name = "prattle"
+version = "0.1.0"
+authors = ["Tyler Laing <trinioler@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+keywords = ["parser", "tdop", "pratt", "grammar"]
+categories = ["parsing"]
+
+[dependencies]
+failure = "0.1.2"
