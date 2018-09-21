@@ -64,7 +64,7 @@
 //! ## Example
 //! 
 //! ```rust
-//! # extern crate prattle;
+//! # #[macro_use]extern crate prattle;
 //! # use prattle::lexer::{Lexer, LexerVec};
 //! # use prattle::node::Node;
 //! # use prattle::parser::{GeneralParser, Parser};
@@ -73,10 +73,10 @@
 //! fn main() {
 //!     let mut spec = ParserSpec::new();
 //! 
-//!     spec.add_null_assoc(
-//!         "var".to_string(),  
+//!     add_null_assoc!(spec,  
 //!         PrecedenceLevel::Root, 
-//!         |_, tk: String, _|{
+//!         ("a".to_string(), "b".to_string(), "c".to_string(),)
+//!         => |_, tk: String, _|{
 //!             Ok(Node::Simple(tk.clone()))
 //!     });
 //!     spec.add_left_assoc(
@@ -97,11 +97,11 @@
 //!     });
 //! 
 //!     let lexer = LexerVec::new(vec![
-//!         "var".to_string(), 
+//!         "a".to_string(), 
 //!         "+".to_string(), 
-//!         "var".to_string(), 
+//!         "b".to_string(), 
 //!         "*".to_string(), 
-//!         "var".to_string()
+//!         "c".to_string()
 //!     ]);
 //! 
 //!     let mut parser = GeneralParser::new(spec, lexer);
