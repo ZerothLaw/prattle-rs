@@ -1,28 +1,10 @@
 use std::clone::Clone;
 use std::collections::{HashMap};
 
-extern crate prattle;
-use prattle::errors::ParseError;
-use prattle::lexer::{Lexer, LexerVec};
-use prattle::node::Node;
-use prattle::parser::Parser;
-use prattle::precedence::PrecedenceLevel;
-use prattle::spec::ParserSpec;
+#[macro_use] extern crate prattle;
 
+use prattle::prelude::*;
 
-macro_rules! multi {
-    ($spec:ident, null, $lbp:expr, ($($token:expr),*) => $cl:expr) => {
-        $(
-            $spec.add_null_assoc($token.to_string(), $lbp, $cl);
-        )*
-        
-    };
-    ($spec:ident, left, $lbp:expr, ($($token:expr),*) => $cl:expr) => {
-        $(
-            $spec.add_left_assoc($token.to_string(), $lbp, $cl);
-        )*
-    };
-}
 
 fn basic_spec() -> ParserSpec<String> {
     let null_node = |_parser: &mut dyn Parser<String>, token: String, _rbp: PrecedenceLevel| -> Result<Node<String>, ParseError<String>> {
@@ -40,10 +22,10 @@ fn basic_spec() -> ParserSpec<String> {
     
     let mut spec = ParserSpec::new();
     
-    multi!(spec, null, PrecedenceLevel::Root, ("ident", "number") => null_node);
-    multi!(spec, left, PrecedenceLevel::First, ("+", "-") => recurse_call);
-    multi!(spec, left, PrecedenceLevel::Second, ("*", "/", "%") => recurse_call);
-    multi!(spec, null, PrecedenceLevel::First, ("(") => parens_call);
+    add_null_assoc!(spec, PrecedenceLevel::Root, ("ident".to_string(), "number".to_string()) => null_node);
+    add_left_assoc!(spec, PrecedenceLevel::First, ("+".to_string(), "-".to_string()) => recurse_call);
+    add_left_assoc!(spec, PrecedenceLevel::Second, ("*".to_string(), "/".to_string(), "%".to_string()) => recurse_call);
+    add_null_assoc!(spec, PrecedenceLevel::First, ("(".to_string()) => parens_call);
     spec
 }
 
