@@ -1,12 +1,12 @@
 use std::clone::Clone;
 use std::collections::{HashMap};
 
-#[macro_use] extern crate prattle;
+extern crate prattle;
 
 use prattle::prelude::*;
 use prattle::types::*;
 
-fn basic_spec() -> ParserSpec<String> {
+fn basic_spec() -> Result<ParserSpec<String>, SpecificationError<String>> {
     let recurse_call = |parser: &mut dyn Parser<String>, token, rbp, node| {
         Ok(Node::Composite{token: token, children: vec![node, parser.parse_expr(rbp)?]})
     };
@@ -19,26 +19,27 @@ fn basic_spec() -> ParserSpec<String> {
     
     let mut spec = ParserSpec::new();
     
-    spec.add_null_associations(vec!["ident", "number"], PrecedenceLevel::Root, |_, token, _| {Ok(Node::Simple(token))});
-    spec.add_left_associations(vec!["+", "-"],  PrecedenceLevel::First, recurse_call);
-    spec.add_left_associations(vec!["*", "/", "%"], PrecedenceLevel::Second, recurse_call);
-    spec.add_null_assoc("(", PrecedenceLevel::First, parens_call);
-    spec
+    spec.add_null_associations(vec!["ident", "number"], PrecedenceLevel::Root, |_, token, _| {Ok(Node::Simple(token))}) ?;
+    spec.add_left_associations(vec!["+", "-"],  PrecedenceLevel::First, recurse_call)?;
+    spec.add_left_associations(vec!["*", "/", "%"], PrecedenceLevel::Second, recurse_call)?;
+    spec.add_null_assoc("(", PrecedenceLevel::First, parens_call)?;
+    Ok(spec)
 }
 
 
-pub struct BasicParser {
+pub struct BasicParser<L: Lexer<String>> {
     null_map: HashMap<String, NullInfo<String>>, 
     left_map: HashMap<String, LeftInfo<String>>,
-    lexer: Box<Lexer<String>>, 
+    lexer: L
 }
 
-impl BasicParser
+impl<L: Lexer<String>> BasicParser<L>
 {
-    pub fn new(spec: ParserSpec<String>, lexert: Box<Lexer<String>>) -> BasicParser {
+    pub fn new(spec: ParserSpec<String>, lexert: L) -> BasicParser<L> {
+        let (null_map, left_map) = spec.maps();
         BasicParser {
-            null_map: spec.null_map.clone(), 
-            left_map: spec.left_map.clone(), 
+            null_map: null_map,
+            left_map: left_map,
             lexer: lexert
         }
     }
@@ -66,7 +67,7 @@ impl BasicParser
     }
 }
 
-impl Parser<String> for BasicParser
+impl<L: Lexer<String>> Parser<String> for BasicParser<L>
 {
     fn parse(&mut self) -> Result<Node<String>, ParseError<String>> {
         self.parse_expr(PrecedenceLevel::Root)
@@ -82,7 +83,7 @@ impl Parser<String> for BasicParser
                 let val = self.null_map.get(&mtk);
                 match val {
                     Some(val) => val.clone(), 
-                    None => return Err(ParseError::MissingRule{token: tk.clone()})
+                    None => return Err(ParseError::MissingRule{token: tk.clone(), ty: "Null".into()})
                 }
             };
             let mut left = func(self, tk, lbp)?;
@@ -94,7 +95,7 @@ impl Parser<String> for BasicParser
                     let v = self.left_map.get(&mtk);
                     match v {
                         Some(val) => val.clone(), 
-                        None => continue
+                        None => return Err(ParseError::MissingRule{token: tk.clone(), ty: "Left".into()})
                     }
                 };
                 let (lbp, _, func) = val;
@@ -152,8 +153,8 @@ fn main() {
         "c",
     ];
     let lexer = LexerVec::new(tokens);
-    let spec = basic_spec();
-    let mut parser = BasicParser::new(spec, Box::new(lexer));
+    let spec = basic_spec().expect("Should be okay.");
+    let mut parser = BasicParser::new(spec, lexer);
     let res = parser.parse();
     println!("{:?}", res);
     println!("{:?}", parser.lexer.peek());

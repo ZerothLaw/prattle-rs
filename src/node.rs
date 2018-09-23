@@ -28,6 +28,11 @@
 //! like identifiers or numbers), and composite nodes, which has a single root token
 //! (for example an operator), and zero-to-many child nodes. 
 //! 
+//! It should be fairly easy to take an AST built with this type into something more
+//! specialized for your language. The idea is that the parser needs to know
+//! what type is being returned.
+//! 
+// TODO: Make this a trait and let users manage ASTNode definition and construction? 
 
 use std::fmt::{Display, Error, Formatter};
 

@@ -104,7 +104,7 @@ impl Display for CToken {
     }
 }
 
-fn token_spec() -> ParserSpec<CToken> {
+fn token_spec() -> Result<ParserSpec<CToken>, SpecificationError<CToken>> {
     let mut spec = ParserSpec::new();
     add_null_assoc!(spec, PrecedenceLevel::Root, (CToken::Number("".to_string()), CToken::Ident("".to_string())) => |_, token: CToken, _| {
         Ok(Node::Simple(token.clone()))
@@ -121,7 +121,7 @@ fn token_spec() -> ParserSpec<CToken> {
         Ok(res)
     });
 
-    spec
+    Ok(spec)
 }
 
 fn main() {
@@ -143,9 +143,8 @@ fn main() {
         CToken::Ident("c".to_string()),
     ];
     let lexer = LexerVec::new(tokens);
-    let spec = token_spec();
+    let spec = token_spec().expect("Should work.");
     let mut parser = GeneralParser::new(spec, lexer);
     let res = parser.parse();
     println!("{:?}", res);
-    //println!("{:?}", parser.lexer.peek());
 }

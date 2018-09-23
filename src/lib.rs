@@ -64,23 +64,20 @@
 //! ## Example
 //! 
 //! ```rust
-//! # #[macro_use]extern crate prattle;
-//! # use prattle::lexer::{Lexer, LexerVec};
-//! # use prattle::node::Node;
-//! # use prattle::parser::{GeneralParser, Parser};
-//! # use prattle::spec::ParserSpec;
-//! # use prattle::precedence::PrecedenceLevel;
+//! extern crate prattle;
+//! use prattle::prelude::*;
 //! fn main() {
 //!     let mut spec = ParserSpec::new();
 //! 
-//!     add_null_assoc!(spec,  
+//!     spec.add_null_associations(
+//!         vec!["a", "b", "c"], 
 //!         PrecedenceLevel::Root, 
-//!         ("a".to_string(), "b".to_string(), "c".to_string(),)
-//!         => |_, tk: String, _|{
-//!             Ok(Node::Simple(tk.clone()))
-//!     });
+//!         |parser: &mut dyn Parser<String>, token, _| {
+//!             Ok(Node::Simple(token.clone()))
+//!         }
+//!     );
 //!     spec.add_left_assoc(
-//!         "+".to_string(), 
+//!         "+", 
 //!         PrecedenceLevel::First, 
 //!         |parser, token, lbp, node| {
 //!             Ok(Node::Composite{token: token.clone(), children: vec![
@@ -88,7 +85,7 @@
 //!                 parser.parse_expr(lbp)?]})
 //!     });
 //!     spec.add_left_assoc(
-//!         "*".to_string(), 
+//!         "*", 
 //!         PrecedenceLevel::Second, 
 //!         |parser, token, lbp, node| {
 //!             Ok(Node::Composite{token: token.clone(), children: vec![
@@ -97,11 +94,11 @@
 //!     });
 //! 
 //!     let lexer = LexerVec::new(vec![
-//!         "a".to_string(), 
-//!         "+".to_string(), 
-//!         "b".to_string(), 
-//!         "*".to_string(), 
-//!         "c".to_string()
+//!         "a", 
+//!         "+", 
+//!         "b", 
+//!         "*", 
+//!         "c"
 //!     ]);
 //! 
 //!     let mut parser = GeneralParser::new(spec, lexer);
@@ -144,16 +141,18 @@ pub mod precedence;
 pub mod spec;
 pub mod token;
 
+/// Handy prelude mod containing everything you need to get started. 
 pub mod prelude {
     pub use errors::ParseError;
     pub use lexer::{Lexer, LexerVec};
     pub use node::Node;
     pub use parser::{Parser, GeneralParser};
     pub use precedence::PrecedenceLevel;
-    pub use spec::ParserSpec;
+    pub use spec::{ParserSpec, SpecificationError};
     pub use token::Token;
 }
 
+//Little container mod for type aliases that are convenient and short
 pub mod types {
     use super::prelude::*;
     pub type NullDenotation<T> = fn(&mut dyn Parser<T>, T, PrecedenceLevel) -> Result<Node<T>, ParseError<T>>;

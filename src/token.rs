@@ -19,6 +19,23 @@
 //  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
+
+//! # Token trait and blanket impl
+//! ## Rationale
+//! This makes it easier to define required trait bounds, 
+//! rather than using the long form. 
+//! 
+//! The reason for each trait is as follows:
+//!  * Clone - This is a useful utility trait to implement. It makes it easier to 
+//!            build an Abstract Syntax Tree without dealing with references and 
+//!            lifetimes. 
+//!  * Debug - Necessary impl for failure::Fail trait
+//!  * Display - Necessary impl for failure::Fail trait
+//!  * Hash - Necessary impl for use with HashMap in the ParserSpec 
+//!  * Ord  - Ord is defined as : Eq + PartialOrd, and Eq is : Partial Eq. We need
+//!           all three traits (PartialOrd, PartialEq, and Hash) for working with 
+//!           ParserSpec HashMap members
+
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 

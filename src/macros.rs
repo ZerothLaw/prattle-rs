@@ -37,7 +37,7 @@
 macro_rules! add_null_assoc {
     ($spec:ident, $lbp:expr, ($($token:expr),* $(,)*) => $clsr:expr) => {
         $(
-            $spec.add_null_assoc($token, $lbp, $clsr);
+            $spec.add_null_assoc($token, $lbp, $clsr)?;
         )*
     };
 }
@@ -46,7 +46,7 @@ macro_rules! add_null_assoc {
 macro_rules! add_left_assoc {
     ($spec:ident, $lbp:expr, ($($token:expr),* $(,)*) => $clsr:expr) => {
         $(
-            $spec.add_left_assoc($token, $lbp, $clsr);
+            $spec.add_left_assoc($token, $lbp, $clsr)?;
         )*
     };
 }
@@ -55,7 +55,7 @@ macro_rules! add_left_assoc {
 macro_rules! add_left_right_assoc {
     ($spec:ident, $lbp:expr, $rbp:expr, ($($token:expr),* $(,)*) => $clsr:expr) => {
         $(
-            $spec.add_left_right_assoc($token, $lbp, $rbp, $clsr);
+            $spec.add_left_right_assoc($token, $lbp, $rbp, $clsr)?;
         )*
     };
 }

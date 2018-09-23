@@ -33,15 +33,37 @@ use std::marker::{Send, Sync};
 use node::Node;
 use token::Token;
 
-//Deriving Fail implies implementation of std::error::Error trait.
+/// # ParseError
+/// ## Explanation
+/// This enum implements failure::Fail, which in turn requires 
+/// Debug + Display + Send + Sync + 'static to ensure the errors
+/// can be sent to other threads and referenced from other threads. 
+/// 
+/// This in turn forces types that deal with ParseError to be 
+/// Send + Sync + 'static as well as Token implementations. 
+/// 
+/// Deriving Fail implies implementation of std::error::Error trait.
+/// 
 #[derive(Clone, Debug, Eq, Fail, Hash, Ord, PartialEq, PartialOrd)]
 pub enum ParseError<T: Token + Send + Sync + 'static> {
-    #[fail(display = "incorrect syntax, failed on node: {}", node)]
-    MalformedSyntax{ node: Node<T> }, 
-    #[fail(display = "missing a syntax rule for: {}", token)]
-    MissingRule {token: T}, 
+    /// # ParseError::MalformedSyntax
+    /// Represents parser context when a syntax rule fails.
+    /// Not returned by the general parser implementation. 
+    /// Usage: during a syntax rule, if this error is to be 
+    /// returned, use *node* for the current node passed to
+    /// the syntax rule, and *token* for the token that lead to
+    /// the error to be returned.
+    #[fail(display = "incorrect syntax, failed on node: {} with token: {}", node, token)]
+    MalformedSyntax{ node: Node<T>, token: T }, 
+    /// Returned by the parser when a rule is not found for a specific token.
+    /// Generally only should be seen during development of a language spec.
+    #[fail(display = "missing a {} syntax rule for: {}", ty, token)]
+    MissingRule {token: T, ty: String}, 
+    /// Expected more input than was available. Returned by the parser.
     #[fail(display = "token iteration ended before parsing context finished")]
     Incomplete, 
+    /// <P as Parser<T>>::consume(end_token: T) was called, and the required
+    /// token was not found as the next token(returned by peek/next_token).
     #[fail(display = "parser.consume(end_token: {}) didn't find expected token, instead found: {}.", expected, found)]
     ConsumeFailed {expected: T, found: T}
 }
