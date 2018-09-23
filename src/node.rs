@@ -33,7 +33,7 @@ use std::fmt::{Debug, Display, Error, Formatter};
 use std::hash::Hash;
 
 #[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum Node<T: Display + Clone + PartialEq + PartialOrd + Hash> {
+pub enum Node<T:  Clone + Debug + Display + Hash + Ord > {
     Simple(T), 
     Composite {
         token: T,
@@ -41,7 +41,7 @@ pub enum Node<T: Display + Clone + PartialEq + PartialOrd + Hash> {
     }
 }
 
-impl<T: Debug + Display + Clone + PartialEq + PartialOrd + Hash> Display for Node<T> {
+impl<T:  Clone + Debug + Display + Hash + Ord > Display for Node<T> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error>{
         write!(f,
             "{}", 

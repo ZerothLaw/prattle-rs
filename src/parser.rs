@@ -50,7 +50,7 @@ use node::Node;
 use spec::ParserSpec;
 use precedence::PrecedenceLevel;
 
-pub trait Parser<T: Clone + Debug + Display + Eq + Hash + PartialEq + PartialOrd + Send + Sync> {
+pub trait Parser<T:  Clone + Debug + Display + Hash + Ord + Send + Sync> {
     fn parse(&mut self) -> Result<Node<T>, ParseError<T>>;
     fn parse_expr(&mut self, rbp: PrecedenceLevel) -> Result<Node<T>, ParseError<T>>;
     fn next_binds_tighter_than(&mut self, rbp: PrecedenceLevel) -> bool;
@@ -58,7 +58,7 @@ pub trait Parser<T: Clone + Debug + Display + Eq + Hash + PartialEq + PartialOrd
 }
 
 pub struct GeneralParser<T, L>
-    where T: Clone + Debug + Display + Eq + Hash + PartialEq + PartialOrd + Send + Sync + 'static, 
+    where T: Clone + Debug + Display + Hash + Ord + Send + Sync + 'static, 
           L: Lexer<T>
 {
     null_map: HashMap<T, (PrecedenceLevel, fn(&mut dyn Parser<T>, T, PrecedenceLevel) -> Result<Node<T>, ParseError<T>>)>, 
@@ -66,7 +66,7 @@ pub struct GeneralParser<T, L>
     lexer: L, 
 }
 
-impl<T: Clone + Debug + Display + Eq + Hash + PartialEq + PartialOrd + Send + Sync + 'static, L: Lexer<T>> GeneralParser<T, L> {
+impl<T: Clone + Debug + Display + Hash + Ord+ Send + Sync + 'static, L: Lexer<T>> GeneralParser<T, L> {
     pub fn new(spec: ParserSpec<T>, lexer: L) -> GeneralParser<T, L> {
         GeneralParser {
             null_map: spec.null_map.clone(), 
@@ -76,7 +76,7 @@ impl<T: Clone + Debug + Display + Eq + Hash + PartialEq + PartialOrd + Send + Sy
     }
 }
 
-impl<T: Clone + Debug + Display + Eq + Hash + PartialEq + PartialOrd + Send + Sync + 'static, L: Lexer<T>> Parser<T> for GeneralParser<T, L> {
+impl<T: Clone + Debug + Display + Hash + Ord + Send + Sync + 'static, L: Lexer<T>> Parser<T> for GeneralParser<T, L> {
     fn parse(&mut self) -> Result<Node<T>, ParseError<T>> {
         self.parse_expr(PrecedenceLevel::Root)
     }

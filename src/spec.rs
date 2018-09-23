@@ -49,13 +49,13 @@ pub type NullDenotation<T> = fn(&mut dyn Parser<T>, T, PrecedenceLevel) -> Resul
 pub type LeftDenotation<T> = fn(&mut dyn Parser<T>, T, PrecedenceLevel, Node<T>) -> Result<Node<T>, ParseError<T>>;
 
 #[derive(Clone)]
-pub struct ParserSpec<T: Debug + Display + PartialOrd + PartialEq + Clone + Eq + Hash + Send + Sync + 'static> {
+pub struct ParserSpec<T:  Clone + Debug + Display + Hash + Ord + Send + Sync + 'static> {
     pub null_map: HashMap<T, (PrecedenceLevel, NullDenotation<T>)>, 
     pub left_map: HashMap<T, (PrecedenceLevel, PrecedenceLevel, LeftDenotation<T>)>,
 }
 
 impl<T> ParserSpec<T>
-where T: Debug + Display + PartialOrd + PartialEq + Clone + Eq + Hash + Send + Sync + 'static
+where T:  Clone + Debug + Display + Hash + Ord + Send + Sync + 'static
 {
     pub fn new() -> ParserSpec<T> {
         ParserSpec {
