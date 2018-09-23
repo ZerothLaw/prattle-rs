@@ -28,15 +28,14 @@
 //! Generally, your rules shouldn't manually return these errors - the parser will 
 //! return these errors where they make the best sense.
 
-use std::fmt::{Debug, Display};
-use std::hash::Hash;
 use std::marker::{Send, Sync};
 
 use node::Node;
+use token::Token;
 
 //Deriving Fail implies implementation of std::error::Error trait.
 #[derive(Clone, Debug, Eq, Fail, Hash, Ord, PartialEq, PartialOrd)]
-pub enum ParseError<T: Clone + Debug + Display + Hash + Ord + Send + Sync + 'static> {
+pub enum ParseError<T: Token + Send + Sync + 'static> {
     #[fail(display = "incorrect syntax, failed on node: {}", node)]
     MalformedSyntax{ node: Node<T> }, 
     #[fail(display = "missing a syntax rule for: {}", token)]

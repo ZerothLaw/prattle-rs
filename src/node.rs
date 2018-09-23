@@ -29,11 +29,12 @@
 //! (for example an operator), and zero-to-many child nodes. 
 //! 
 
-use std::fmt::{Debug, Display, Error, Formatter};
-use std::hash::Hash;
+use std::fmt::{Display, Error, Formatter};
+
+use token::Token;
 
 #[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum Node<T:  Clone + Debug + Display + Hash + Ord > {
+pub enum Node<T: Token> {
     Simple(T), 
     Composite {
         token: T,
@@ -41,7 +42,7 @@ pub enum Node<T:  Clone + Debug + Display + Hash + Ord > {
     }
 }
 
-impl<T:  Clone + Debug + Display + Hash + Ord > Display for Node<T> {
+impl<T: Token> Display for Node<T> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error>{
         write!(f,
             "{}", 

@@ -38,32 +38,31 @@
 //! implementation.
 //!  
 
-use std::clone::Clone;
 use std::fmt;
-use std::fmt::{Debug, Display, Formatter};
-use std::hash::Hash;
+use std::fmt::{Display, Formatter};
 use std::iter::FromIterator;
 
-pub trait Lexer<T:  Clone + Debug + Display + Hash + Ord  > {
+use token::Token;
+
+pub trait Lexer<T: Token> {
     fn peek(&self) -> Option<T>;
     fn next_token(&mut self) -> T;
     fn prev_token(&mut self) -> T;
 }
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct LexerVec<T:  Clone + Debug + Display + Hash + Ord > {
+pub struct LexerVec<T: Token> {
     inner: Vec<T>, 
     index: usize,
 }
 
-impl<T:  Clone + Debug + Display + Hash + Ord > Display for LexerVec<T> {
+impl<T: Token> Display for LexerVec<T> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
         write!(f, "(LexerVec)")
     }
 }
 
-impl<T> LexerVec<T>
-where T:  Clone + Debug + Display + Hash + Ord 
+impl<T:  Token> LexerVec<T>
 {
     pub fn new(tokens: Vec<T>) -> LexerVec<T> {
         LexerVec {
@@ -73,7 +72,7 @@ where T:  Clone + Debug + Display + Hash + Ord
     }
 }
 
-impl<T:  Clone + Debug + Display + Hash + Ord > Lexer<T> for LexerVec<T>
+impl<T: Token> Lexer<T> for LexerVec<T>
 {
     fn peek(&self) -> Option<T> {
         if self.index < self.inner.len() {
@@ -96,7 +95,7 @@ impl<T:  Clone + Debug + Display + Hash + Ord > Lexer<T> for LexerVec<T>
     }
 }
 
-impl<T:  Clone + Debug + Display + Hash + Ord > FromIterator<T> for LexerVec<T> {
+impl<T: Token> FromIterator<T> for LexerVec<T> {
     fn from_iter<I: IntoIterator<Item=T>>(iter: I) -> Self {
         let mut v = Vec::new();
         for i in iter {
@@ -106,7 +105,7 @@ impl<T:  Clone + Debug + Display + Hash + Ord > FromIterator<T> for LexerVec<T> 
     }
 }
 
-impl<T:  Clone + Debug + Display + Hash + Ord > Extend<T> for LexerVec<T> {
+impl<T: Token> Extend<T> for LexerVec<T> {
     fn extend<I: IntoIterator<Item=T>>(&mut self, iter: I) {
         self.inner.extend(iter);
     }

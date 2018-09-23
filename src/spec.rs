@@ -34,28 +34,22 @@
 //! Tokens must implement Clone + Debug + Display + Eq + Hash + PartialOrd + PartialEq.
 //! 
 
-use std::clone::Clone;
 use std::collections::{HashMap};
-use std::fmt::{Debug, Display};
-use std::hash::Hash;
 use std::marker::{Send, Sync};
 
-use errors::ParseError;
-use node::Node;
-use parser::Parser;
-use precedence::PrecedenceLevel;
 
-pub type NullDenotation<T> = fn(&mut dyn Parser<T>, T, PrecedenceLevel) -> Result<Node<T>, ParseError<T>>;
-pub type LeftDenotation<T> = fn(&mut dyn Parser<T>, T, PrecedenceLevel, Node<T>) -> Result<Node<T>, ParseError<T>>;
+use precedence::PrecedenceLevel;
+use token::Token;
+use types::*;
 
 #[derive(Clone)]
-pub struct ParserSpec<T:  Clone + Debug + Display + Hash + Ord + Send + Sync + 'static> {
-    pub null_map: HashMap<T, (PrecedenceLevel, NullDenotation<T>)>, 
-    pub left_map: HashMap<T, (PrecedenceLevel, PrecedenceLevel, LeftDenotation<T>)>,
+pub struct ParserSpec<T: Token + Send + Sync + 'static> {
+    pub null_map: HashMap<T, NullInfo<T>>, 
+    pub left_map: HashMap<T, LeftInfo<T>>,
 }
 
 impl<T> ParserSpec<T>
-where T:  Clone + Debug + Display + Hash + Ord + Send + Sync + 'static
+where T: Token + Send + Sync + 'static
 {
     pub fn new() -> ParserSpec<T> {
         ParserSpec {

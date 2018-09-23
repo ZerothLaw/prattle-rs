@@ -142,3 +142,23 @@ pub mod node;
 pub mod parser;
 pub mod precedence;
 pub mod spec;
+pub mod token;
+
+pub mod prelude {
+    pub use errors::ParseError;
+    pub use lexer::{Lexer, LexerVec};
+    pub use node::Node;
+    pub use parser::{Parser, GeneralParser};
+    pub use precedence::PrecedenceLevel;
+    pub use spec::ParserSpec;
+    pub use token::Token;
+}
+
+pub mod types {
+    use super::prelude::*;
+    pub type NullDenotation<T> = fn(&mut dyn Parser<T>, T, PrecedenceLevel) -> Result<Node<T>, ParseError<T>>;
+    pub type LeftDenotation<T> = fn(&mut dyn Parser<T>, T, PrecedenceLevel, Node<T>) -> Result<Node<T>, ParseError<T>>;
+
+    pub type NullInfo<T> = (PrecedenceLevel, NullDenotation<T>);
+    pub type LeftInfo<T> = (PrecedenceLevel, PrecedenceLevel, LeftDenotation<T>);
+}
