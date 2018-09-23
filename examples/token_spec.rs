@@ -1,91 +1,16 @@
-use std::cmp::Ordering;
 use std::fmt::{Display, Formatter, Error}; 
-use std::hash::{Hash, Hasher};
 
 #[macro_use] extern crate prattle;
 
 use prattle::prelude::*;
 
-#[derive(Debug, Clone, Eq, Ord)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum CToken {
     Number(String), 
     Ident(String), 
     Add, Sub, 
     Mul, Div, Mod, 
     LParens, RParens
-}
-
-impl PartialEq for CToken {
-    fn eq(&self, other: &CToken) -> bool {
-        let lhs = match self {
-            CToken::Number(_) => 0, 
-            CToken::Ident(_) => 1, 
-            CToken::Add => 2, 
-            CToken::Sub => 3,
-            CToken::Mul => 4,
-            CToken::Div => 5,
-            CToken::Mod => 6,
-            CToken::LParens => 7,
-            CToken::RParens => 8,
-        };
-        let rhs = match other {
-            CToken::Number(_) => 0, 
-            CToken::Ident(_) => 1, 
-            CToken::Add => 2, 
-            CToken::Sub => 3,
-            CToken::Mul => 4,
-            CToken::Div => 5,
-            CToken::Mod => 6,
-            CToken::LParens => 7,
-            CToken::RParens => 8,
-        };
-        lhs.eq(&rhs)
-    }
-}
-
-impl PartialOrd for CToken {
-    fn partial_cmp(&self, other: &CToken) -> Option<Ordering> {
-        let lhs = match self {
-            CToken::Number(_) => 0, 
-            CToken::Ident(_) => 1, 
-            CToken::Add => 2, 
-            CToken::Sub => 3,
-            CToken::Mul => 4,
-            CToken::Div => 5,
-            CToken::Mod => 6,
-            CToken::LParens => 7,
-            CToken::RParens => 8,
-        };
-        let rhs = match other {
-            CToken::Number(_) => 0, 
-            CToken::Ident(_) => 1, 
-            CToken::Add => 2, 
-            CToken::Sub => 3,
-            CToken::Mul => 4,
-            CToken::Div => 5,
-            CToken::Mod => 6,
-            CToken::LParens => 7,
-            CToken::RParens => 8,
-        };
-        lhs.partial_cmp(&rhs)
-    }
-}
-
-impl Hash for CToken {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        let lhs = match self {
-            CToken::Number(_) => 0, 
-            CToken::Ident(_) => 1, 
-            CToken::Add => 2, 
-            CToken::Sub => 3,
-            CToken::Mul => 4,
-            CToken::Div => 5,
-            CToken::Mod => 6,
-            CToken::LParens => 7,
-            CToken::RParens => 8,
-        };
-        lhs.hash(state);
-    }
 }
 
 impl Display for CToken {
@@ -120,7 +45,6 @@ fn token_spec() -> Result<ParserSpec<CToken>, SpecificationError<CToken>> {
         parser.consume(CToken::RParens)?;
         Ok(res)
     });
-
     Ok(spec)
 }
 

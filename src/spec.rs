@@ -32,7 +32,7 @@
 //! where T is your token type. 
 //! 
 //! Tokens must implement the required traits: 
-//!     Clone + Debug + Display + Hash + Ord
+//!     Clone + Debug + Display + PartialEq
 //! 
 //! Send + Sync + 'static are inherent and auto-implemented by the compiler on valid Token types.
 //! 
@@ -44,6 +44,7 @@
 
 use std::collections::{HashMap};
 use std::marker::{Send, Sync};
+use std::mem::{discriminant, Discriminant};
 
 use precedence::PrecedenceLevel;
 use token::Token;
@@ -60,8 +61,8 @@ pub enum SpecificationError<T: Token + Send + Sync + 'static> {
 
 #[derive(Clone)]
 pub struct ParserSpec<T: Token + Send + Sync + 'static> {
-    null_map: HashMap<T, NullInfo<T>>, 
-    left_map: HashMap<T, LeftInfo<T>>,
+    null_map: HashMap<Discriminant<T>, NullInfo<T>>, 
+    left_map: HashMap<Discriminant<T>, LeftInfo<T>>,
 }
 
 impl<T: Token + Send + Sync + 'static> ParserSpec<T>
@@ -75,8 +76,9 @@ impl<T: Token + Send + Sync + 'static> ParserSpec<T>
 
     pub fn add_null_assoc<I: Into<T>>(&mut self, token: I, bp: PrecedenceLevel, func: NullDenotation<T>) -> Result<(), SpecificationError<T>> {
         let token = token.into();
-        if !self.null_map.contains_key(&token) {
-            self.null_map.insert(token.clone(), (bp, func));
+        let disc = discriminant(&token);
+        if !self.null_map.contains_key(&disc) {
+            self.null_map.insert(disc, (bp, func));
             Ok(())
         } else {
             Err(SpecificationError::TokenToRuleAlreadyDefined{tk: token})
@@ -85,8 +87,9 @@ impl<T: Token + Send + Sync + 'static> ParserSpec<T>
 
     pub fn add_left_assoc<I: Into<T>>(&mut self, token: I, bp: PrecedenceLevel, func: LeftDenotation<T>) -> Result<(), SpecificationError<T>> {
         let token = token.into();
-        if !self.left_map.contains_key(&token) {
-            self.left_map.insert(token.clone(), (bp, bp, func));
+        let disc = discriminant(&token);
+        if !self.left_map.contains_key(&disc) {
+            self.left_map.insert(disc, (bp, bp, func));
             Ok(())
         } else {
             Err(SpecificationError::TokenToRuleAlreadyDefined{tk: token})
@@ -95,8 +98,9 @@ impl<T: Token + Send + Sync + 'static> ParserSpec<T>
 
     pub fn add_left_right_assoc<I: Into<T>>(&mut self, token: I, lbp: PrecedenceLevel, rbp: PrecedenceLevel, func: LeftDenotation<T>) -> Result<(), SpecificationError<T>> {
         let token = token.into();
-        if !self.left_map.contains_key(&token) {
-            self.left_map.insert(token.clone(), (lbp, rbp, func));
+        let disc = discriminant(&token);
+        if !self.left_map.contains_key(&disc) {
+            self.left_map.insert(disc, (lbp, rbp, func));
             Ok(())
         } else {
             Err(SpecificationError::TokenToRuleAlreadyDefined{tk: token})
@@ -127,7 +131,7 @@ impl<T: Token + Send + Sync + 'static> ParserSpec<T>
     ///Consumes a spec and gets the HashMaps used for mapping tokens
     /// to syntax rules. This avoids clones and allocations/deallocations 
     /// of potentially large HashMaps when creating a Parser from the maps.
-    pub fn maps(self) -> (HashMap<T, NullInfo<T>>, HashMap<T, LeftInfo<T>>) {
+    pub fn maps(self) -> (HashMap<Discriminant<T>, NullInfo<T>>, HashMap<Discriminant<T>, LeftInfo<T>>) {
         return (self.null_map, self.left_map)
     }
 }

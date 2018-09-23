@@ -32,15 +32,12 @@
 //! > }
 //! > return left;
 //! 
-//! The GeneralParser implementation here requires a provide ParserSpec and Lexer 
+//! The GeneralParser implementation here requires a provided ParserSpec and Lexer 
 //! containing the tokens to be parsed. 
-//! 
-//! You may need to customize the behavior for specific token types, such as String, 
-//! and examples/basic_spec.rs shows how. 
-//! 
 
 use std::collections::HashMap;
 use std::marker::{Send, Sync};
+use std::mem::{Discriminant, discriminant};
 
 use prelude::*;
 
@@ -71,8 +68,8 @@ pub struct GeneralParser<T, L>
     where T: Token + Send + Sync + 'static, 
           L: Lexer<T>
 {
-    null_map: HashMap<T, (PrecedenceLevel, fn(&mut dyn Parser<T>, T, PrecedenceLevel) -> Result<Node<T>, ParseError<T>>)>, 
-    left_map: HashMap<T, (PrecedenceLevel, PrecedenceLevel, fn(&mut dyn Parser<T>, T, PrecedenceLevel, Node<T>) -> Result<Node<T>, ParseError<T>>)>,
+    null_map: HashMap<Discriminant<T>, (PrecedenceLevel, fn(&mut dyn Parser<T>, T, PrecedenceLevel) -> Result<Node<T>, ParseError<T>>)>, 
+    left_map: HashMap<Discriminant<T>, (PrecedenceLevel, PrecedenceLevel, fn(&mut dyn Parser<T>, T, PrecedenceLevel, Node<T>) -> Result<Node<T>, ParseError<T>>)>,
     lexer: L, 
 }
 
@@ -117,7 +114,7 @@ impl<T: Token + Send + Sync + 'static, L: Lexer<T>> Parser<T> for GeneralParser<
         if let Some(tk) = self.lexer.peek() {
             self.lexer.next_token();
             let (lbp, func) = {
-                let val = self.null_map.get(&tk);
+                let val = self.null_map.get(&discriminant(&tk));
                 match val {
                     Some(val) => val.clone(), 
                     None => return Err(ParseError::MissingRule {token: tk.clone(), ty: "Null".into()})
@@ -127,7 +124,7 @@ impl<T: Token + Send + Sync + 'static, L: Lexer<T>> Parser<T> for GeneralParser<
             while self.next_binds_tighter_than(rbp) {
                 let tk = self.lexer.next_token(); //implied that token exists
                 let val = {
-                    let v = self.left_map.get(&tk);
+                    let v = self.left_map.get(&discriminant(&tk));
                     match v {
                         Some(val) => val.clone(), 
                         None => return Err(ParseError::MissingRule {token: tk.clone(), ty: "Left".into()})
@@ -144,7 +141,7 @@ impl<T: Token + Send + Sync + 'static, L: Lexer<T>> Parser<T> for GeneralParser<
 
     fn next_binds_tighter_than(&mut self, rbp: PrecedenceLevel) -> bool {
         if let Some(tk) = self.lexer.peek() {
-            if let Some((_, next_rbp, _)) = self.left_map.get(&tk) {
+            if let Some((_, next_rbp, _)) = self.left_map.get(&discriminant(&tk)) {
                 *next_rbp > rbp
             } else {
                 false

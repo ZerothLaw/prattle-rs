@@ -37,8 +37,7 @@
 //!           ParserSpec HashMap members
 
 use std::fmt::{Debug, Display};
-use std::hash::Hash;
 
-pub trait Token:  Clone + Debug + Display + Hash + Ord  {}
+pub trait Token:  Clone + Debug + Display + PartialEq  {}
 
-impl<T> Token for T where T:  Clone + Debug + Display + Hash + Ord {}
+impl<T> Token for T where T:  Clone + Debug + Display + PartialEq {}

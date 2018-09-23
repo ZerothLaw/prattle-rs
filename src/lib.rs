@@ -64,20 +64,36 @@
 //! ## Example
 //! 
 //! ```rust
+//! use std::fmt::{Display, Formatter, Error};
+//! 
 //! extern crate prattle;
 //! use prattle::prelude::*;
+//! 
+//! #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+//! enum CToken {
+//!     Var(String), 
+//!     Add, 
+//!     Mul
+//! }
+//! 
+//! impl Display for CToken {
+//!     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+//!         write!(f, "{:?}", self)
+//!     }
+//! }
+//! 
 //! fn main() {
 //!     let mut spec = ParserSpec::new();
 //! 
-//!     spec.add_null_associations(
-//!         vec!["a", "b", "c"], 
+//!     spec.add_null_assoc(
+//!         CToken::Var("".to_string()),
 //!         PrecedenceLevel::Root, 
-//!         |parser: &mut dyn Parser<String>, token, _| {
+//!         |parser: &mut dyn Parser<CToken>, token, _| {
 //!             Ok(Node::Simple(token.clone()))
 //!         }
 //!     );
 //!     spec.add_left_assoc(
-//!         "+", 
+//!         CToken::Add, 
 //!         PrecedenceLevel::First, 
 //!         |parser, token, lbp, node| {
 //!             Ok(Node::Composite{token: token.clone(), children: vec![
@@ -85,7 +101,7 @@
 //!                 parser.parse_expr(lbp)?]})
 //!     });
 //!     spec.add_left_assoc(
-//!         "*", 
+//!         CToken::Mul, 
 //!         PrecedenceLevel::Second, 
 //!         |parser, token, lbp, node| {
 //!             Ok(Node::Composite{token: token.clone(), children: vec![
@@ -94,11 +110,11 @@
 //!     });
 //! 
 //!     let lexer = LexerVec::new(vec![
-//!         "a", 
-//!         "+", 
-//!         "b", 
-//!         "*", 
-//!         "c"
+//!         CToken::Var("a".to_string()),
+//!         CToken::Add, 
+//!         CToken::Var("b".to_string()), 
+//!         CToken::Mul, 
+//!         CToken::Var("c".to_string())
 //!     ]);
 //! 
 //!     let mut parser = GeneralParser::new(spec, lexer);

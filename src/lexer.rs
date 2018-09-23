@@ -135,10 +135,7 @@ impl<T: Token> Lexer<T> for LexerVec<T>
 
 impl<T: Token, I: Into<T>> FromIterator<I> for LexerVec<T> {
     fn from_iter<Iter: IntoIterator<Item=I>>(iter: Iter) -> Self {
-        let mut v = Vec::new();
-        for i in iter {
-            v.push(i.into());
-        }
+        let v: Vec<T> = iter.into_iter().map(|i| i.into()).collect();
         LexerVec::new(v)
     }
 }
