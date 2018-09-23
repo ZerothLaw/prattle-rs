@@ -58,33 +58,42 @@ where T: Token + Send + Sync + 'static
         }
     }
 
-    pub fn add_null_assoc(&mut self, token: T, bp: PrecedenceLevel, func: NullDenotation<T>) {
+    pub fn add_null_assoc<I: Into<T>>(&mut self, token: I, bp: PrecedenceLevel, func: NullDenotation<T>) {
+        let token = token.into();
         if !self.null_map.contains_key(&token) {
             self.null_map.insert(token.clone(), (bp, func));
         }
     }
 
-    pub fn add_left_assoc(&mut self, token: T, bp: PrecedenceLevel, func: LeftDenotation<T>) {
+    pub fn add_left_assoc<I: Into<T>>(&mut self, token: I, bp: PrecedenceLevel, func: LeftDenotation<T>) {
+        let token = token.into();
         if !self.left_map.contains_key(&token) {
             self.left_map.insert(token.clone(), (bp, bp, func));
         }
     }
 
-    pub fn add_left_right_assoc(&mut self, token: T, lbp: PrecedenceLevel, rbp: PrecedenceLevel, func: LeftDenotation<T>) {
+    pub fn add_left_right_assoc<I: Into<T>>(&mut self, token: I, lbp: PrecedenceLevel, rbp: PrecedenceLevel, func: LeftDenotation<T>) {
+        let token = token.into();
         if !self.left_map.contains_key(&token) {
             self.left_map.insert(token.clone(), (lbp, rbp, func));
         }
     }
 
-    pub fn add_multi_null_assoc<I: IntoIterator<Item=T>>(&mut self, tokens: I, bp: PrecedenceLevel, func: NullDenotation<T>) {
+    pub fn add_null_associations<Iter: IntoIterator<Item=I>, I: Into<T>>(&mut self, tokens: Iter, bp: PrecedenceLevel, func: NullDenotation<T>) {
         for token in tokens {
             self.add_null_assoc(token, bp, func)
         }
     }
 
-    pub fn add_multi_left_assoc<I: IntoIterator<Item=T>>(&mut self, tokens: I, bp: PrecedenceLevel, func: LeftDenotation<T>) {
+    pub fn add_left_associations<Iter: IntoIterator<Item=I>, I: Into<T>>(&mut self, tokens: Iter, bp: PrecedenceLevel, func: LeftDenotation<T>) {
         for token in tokens {
             self.add_left_assoc(token, bp, func)
+        }
+    }
+
+    pub fn add_left_right_associations<Iter: IntoIterator<Item=I>, I: Into<T>>(&mut self, tokens: Iter, lbp: PrecedenceLevel, rbp: PrecedenceLevel, func: LeftDenotation<T>) {
+        for token in tokens {
+            self.add_left_right_assoc(token, lbp, rbp, func)
         }
     }
 }

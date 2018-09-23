@@ -4,35 +4,32 @@ use std::collections::{HashMap};
 #[macro_use] extern crate prattle;
 
 use prattle::prelude::*;
-
+use prattle::types::*;
 
 fn basic_spec() -> ParserSpec<String> {
-    let null_node = |_parser: &mut dyn Parser<String>, token: String, _rbp: PrecedenceLevel| -> Result<Node<String>, ParseError<String>> {
-        Ok(Node::Simple(token.to_string()))
-    };
-    let recurse_call = |parser: &mut dyn Parser<String>, token: String, rbp: PrecedenceLevel, node: Node<String>| -> Result<Node<String>, ParseError<String>> {
-        Ok(Node::Composite{token: token.to_string(), children: vec![node, parser.parse_expr(rbp)?]})
+    let recurse_call = |parser: &mut dyn Parser<String>, token, rbp, node| {
+        Ok(Node::Composite{token: token, children: vec![node, parser.parse_expr(rbp)?]})
     };
     
-    let parens_call = |parser: &mut dyn Parser<String>, _token: String, rbp: PrecedenceLevel| -> Result<Node<String>, ParseError<String>> {
+    let parens_call = |parser: &mut dyn Parser<String>,_, rbp| {
         let res = parser.parse_expr(rbp)?;
-        parser.consume(")".to_string())?;
+        parser.consume(")".into())?;
         Ok(res)
     };
     
     let mut spec = ParserSpec::new();
     
-    add_null_assoc!(spec, PrecedenceLevel::Root, ("ident".to_string(), "number".to_string()) => null_node);
-    add_left_assoc!(spec, PrecedenceLevel::First, ("+".to_string(), "-".to_string()) => recurse_call);
-    add_left_assoc!(spec, PrecedenceLevel::Second, ("*".to_string(), "/".to_string(), "%".to_string()) => recurse_call);
-    add_null_assoc!(spec, PrecedenceLevel::First, ("(".to_string()) => parens_call);
+    spec.add_null_associations(vec!["ident", "number"], PrecedenceLevel::Root, |_, token, _| {Ok(Node::Simple(token))});
+    spec.add_left_associations(vec!["+", "-"],  PrecedenceLevel::First, recurse_call);
+    spec.add_left_associations(vec!["*", "/", "%"], PrecedenceLevel::Second, recurse_call);
+    spec.add_null_assoc("(", PrecedenceLevel::First, parens_call);
     spec
 }
 
 
 pub struct BasicParser {
-    null_map: HashMap<String, (PrecedenceLevel, fn(&mut dyn Parser<String>, String, PrecedenceLevel) -> Result<Node<String>, ParseError<String>>)>, 
-    left_map: HashMap<String, (PrecedenceLevel, PrecedenceLevel, fn(&mut dyn Parser<String>, String, PrecedenceLevel, Node<String>) -> Result<Node<String>, ParseError<String>>)>,
+    null_map: HashMap<String, NullInfo<String>>, 
+    left_map: HashMap<String, LeftInfo<String>>,
     lexer: Box<Lexer<String>>, 
 }
 
@@ -45,6 +42,7 @@ impl BasicParser
             lexer: lexert
         }
     }
+    //needed so we can effectively retrieve syntax rules for arbitrary ident/number values
     fn map_string(&self, token: String) -> String {
         let mut is_ident = false;
         for chr in token.chars() {
@@ -137,21 +135,21 @@ impl Parser<String> for BasicParser
 
 fn main() {
     let tokens = vec![
-        "a".to_string(), 
-        "+".to_string(), 
-        "(".to_string(), 
-        "10".to_string(), 
-        "*".to_string(),
-        "(".to_string(),
-        "b".to_string(),
-        "/".to_string(),
-        "2".to_string(),
-        ")".to_string(),
-        "%".to_string(),
-        "4".to_string(),
-        ")".to_string(),
-        "-".to_string(), 
-        "c".to_string(),
+        "a", 
+        "+", 
+        "(", 
+        "10", 
+        "*",
+        "(",
+        "b",
+        "/",
+        "2",
+        ")",
+        "%",
+        "4",
+        ")",
+        "-", 
+        "c",
     ];
     let lexer = LexerVec::new(tokens);
     let spec = basic_spec();

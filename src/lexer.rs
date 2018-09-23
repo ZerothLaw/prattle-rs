@@ -1,17 +1,17 @@
 // lexer.rs - MIT License
 //  MIT License
 //  Copyright (c) 2018 Tyler Laing (ZerothLaw)
-// 
+//
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
 //  in the Software without restriction, including without limitation the rights
 //  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 //  copies of the Software, and to permit persons to whom the Software is
 //  furnished to do so, subject to the following conditions:
-// 
+//
 //  The above copyright notice and this permission notice shall be included in all
 //  copies or substantial portions of the Software.
-// 
+//
 //  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 //  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 //  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -21,22 +21,22 @@
 //  SOFTWARE.
 
 //! # Lexer trait and simple implementation
-//! 
+//!
 //! ```rust
 //! use prattle::lexer::{Lexer, LexerVec};
 //! ```
-//! 
+//!
 //! The parser is looking for a type that implements a Lexer because it wants to
-//! be able to peek at the next token, and receive the next one. 
-//! 
+//! be able to peek at the next token, and receive the next one.
+//!
 //! ## Usage
-//! 
+//!
 //! The trait could be implemented by a stream adapter, and the parser need not know
-//! more than that it implements the Lexer trait. 
-//! 
-//! Here is a simple wrapper around a vector as a reference/default 
+//! more than that it implements the Lexer trait.
+//!
+//! Here is a simple wrapper around a vector as a reference/default
 //! implementation.
-//!  
+//!
 
 use std::fmt;
 use std::fmt::{Display, Formatter};
@@ -52,7 +52,7 @@ pub trait Lexer<T: Token> {
 
 #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct LexerVec<T: Token> {
-    inner: Vec<T>, 
+    inner: Vec<T>,
     index: usize,
 }
 
@@ -62,11 +62,12 @@ impl<T: Token> Display for LexerVec<T> {
     }
 }
 
-impl<T:  Token> LexerVec<T>
+impl<T: Token> LexerVec<T>
 {
-    pub fn new(tokens: Vec<T>) -> LexerVec<T> {
+    pub fn new<Iter: IntoIterator<Item=I>, I: Into<T>>(tokens: Iter) -> LexerVec<T> {
+        let tokens = tokens.into_iter().map(|i|i.into()).collect();
         LexerVec {
-            inner: tokens, 
+            inner: tokens,
             index: 0
         }
     }
@@ -95,11 +96,21 @@ impl<T: Token> Lexer<T> for LexerVec<T>
     }
 }
 
-impl<T: Token> FromIterator<T> for LexerVec<T> {
-    fn from_iter<I: IntoIterator<Item=T>>(iter: I) -> Self {
+// impl<T: Token> FromIterator<T> for LexerVec<T> {
+//     fn from_iter<I: IntoIterator<Item=T>>(iter: I) -> Self {
+//         let mut v = Vec::new();
+//         for i in iter {
+//             v.push(i);
+//         }
+//         LexerVec::new(v)
+//     }
+// }
+
+impl<T: Token, I: Into<T>> FromIterator<I> for LexerVec<T> {
+    fn from_iter<Iter: IntoIterator<Item=I>>(iter: Iter) -> Self {
         let mut v = Vec::new();
         for i in iter {
-            v.push(i);
+            v.push(i.into());
         }
         LexerVec::new(v)
     }
