@@ -74,7 +74,7 @@ impl<T: Token + Send + Sync + 'static> ParserSpec<T>
         }
     }
 
-    pub fn add_null_assoc<I: Into<T>>(&mut self, token: I, bp: PrecedenceLevel, func: NullDenotation<T>) -> Result<(), SpecificationError<T>> {
+    pub fn add_null_assoc(&mut self, token: impl Into<T>, bp: PrecedenceLevel, func: NullDenotation<T>) -> Result<(), SpecificationError<T>> {
         let token = token.into();
         let disc = discriminant(&token);
         if !self.null_map.contains_key(&disc) {
@@ -85,7 +85,7 @@ impl<T: Token + Send + Sync + 'static> ParserSpec<T>
         }
     }
 
-    pub fn add_left_assoc<I: Into<T>>(&mut self, token: I, bp: PrecedenceLevel, func: LeftDenotation<T>) -> Result<(), SpecificationError<T>> {
+    pub fn add_left_assoc(&mut self, token: impl Into<T>, bp: PrecedenceLevel, func: LeftDenotation<T>) -> Result<(), SpecificationError<T>> {
         let token = token.into();
         let disc = discriminant(&token);
         if !self.left_map.contains_key(&disc) {
@@ -96,7 +96,7 @@ impl<T: Token + Send + Sync + 'static> ParserSpec<T>
         }
     }
 
-    pub fn add_left_right_assoc<I: Into<T>>(&mut self, token: I, lbp: PrecedenceLevel, rbp: PrecedenceLevel, func: LeftDenotation<T>) -> Result<(), SpecificationError<T>> {
+    pub fn add_left_right_assoc(&mut self, token: impl Into<T>, lbp: PrecedenceLevel, rbp: PrecedenceLevel, func: LeftDenotation<T>) -> Result<(), SpecificationError<T>> {
         let token = token.into();
         let disc = discriminant(&token);
         if !self.left_map.contains_key(&disc) {
@@ -107,21 +107,21 @@ impl<T: Token + Send + Sync + 'static> ParserSpec<T>
         }
     }
 
-    pub fn add_null_associations<Iter: IntoIterator<Item=I>, I: Into<T>>(&mut self, tokens: Iter, bp: PrecedenceLevel, func: NullDenotation<T>) -> Result<(), SpecificationError<T>> {
+    pub fn add_null_associations(&mut self, tokens: impl IntoIterator<Item=impl Into<T>>, bp: PrecedenceLevel, func: NullDenotation<T>) -> Result<(), SpecificationError<T>> {
         for token in tokens {
             self.add_null_assoc(token, bp, func)?;
         }
         Ok(())
     }
 
-    pub fn add_left_associations<Iter: IntoIterator<Item=I>, I: Into<T>>(&mut self, tokens: Iter, bp: PrecedenceLevel, func: LeftDenotation<T>) -> Result<(), SpecificationError<T>> {
+    pub fn add_left_associations(&mut self, tokens: impl IntoIterator<Item=impl Into<T>>, bp: PrecedenceLevel, func: LeftDenotation<T>) -> Result<(), SpecificationError<T>> {
         for token in tokens {
             self.add_left_assoc(token, bp, func)?;
         }
         Ok(())
     }
 
-    pub fn add_left_right_associations<Iter: IntoIterator<Item=I>, I: Into<T>>(&mut self, tokens: Iter, lbp: PrecedenceLevel, rbp: PrecedenceLevel, func: LeftDenotation<T>) -> Result<(), SpecificationError<T>>{
+    pub fn add_left_right_associations(&mut self, tokens: impl IntoIterator<Item=impl Into<T>>, lbp: PrecedenceLevel, rbp: PrecedenceLevel, func: LeftDenotation<T>) -> Result<(), SpecificationError<T>>{
         for token in tokens {
             self.add_left_right_assoc(token, lbp, rbp, func)?;
         }
