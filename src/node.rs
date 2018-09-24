@@ -28,12 +28,18 @@
 //! like identifiers or numbers), and composite nodes, which has a single root token
 //! (for example an operator), and zero-to-many child nodes. 
 //! 
+//! It should be fairly easy to take an AST built with this type into something more
+//! specialized for your language. The idea is that the parser needs to know
+//! what type is being returned.
+//! 
+// TODO: Make this a trait and let users manage ASTNode definition and construction? 
 
-use std::fmt::{Debug, Display, Error, Formatter};
-use std::hash::Hash;
+use std::fmt::{Display, Error, Formatter};
+
+use token::Token;
 
 #[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum Node<T: Display + Clone + PartialEq + PartialOrd + Hash> {
+pub enum Node<T: Token> {
     Simple(T), 
     Composite {
         token: T,
@@ -41,7 +47,7 @@ pub enum Node<T: Display + Clone + PartialEq + PartialOrd + Hash> {
     }
 }
 
-impl<T: Debug + Display + Clone + PartialEq + PartialOrd + Hash> Display for Node<T> {
+impl<T: Token> Display for Node<T> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error>{
         write!(f,
             "{}", 

@@ -32,51 +32,80 @@
 //! > }
 //! > return left;
 //! 
-//! The GeneralParser implementation here requires a provide ParserSpec and Lexer 
+//! The GeneralParser implementation here requires a provided ParserSpec and Lexer 
 //! containing the tokens to be parsed. 
-//! 
-//! You may need to customize the behavior for specific token types, such as String, 
-//! and examples/basic_spec.rs shows how. 
-//! 
 
 use std::collections::HashMap;
-use std::fmt::{Debug, Display};
-use std::hash::Hash;
 use std::marker::{Send, Sync};
+use std::mem::{Discriminant, discriminant};
 
-use errors::ParseError;
-use lexer::Lexer;
-use node::Node;
-use spec::ParserSpec;
-use precedence::PrecedenceLevel;
+use prelude::*;
 
-pub trait Parser<T: Clone + Debug + Display + Eq + Hash + PartialEq + PartialOrd + Send + Sync> {
+/// Parser trait. Theoretically, one could use different parser impls during parse of a 
+/// language and so the syntax rules need to not be tied to any specific Parser impl. 
+/// Hence why the ParserSpec uses closures with the signature ```&mut dyn Parser<T>```
+pub trait Parser<T: Token + Send + Sync + 'static> {
     fn parse(&mut self) -> Result<Node<T>, ParseError<T>>;
     fn parse_expr(&mut self, rbp: PrecedenceLevel) -> Result<Node<T>, ParseError<T>>;
     fn next_binds_tighter_than(&mut self, rbp: PrecedenceLevel) -> bool;
     fn consume(&mut self, end_token: T) -> Result<(), ParseError<T>>;
 }
 
+/// General implementation of Parser trait. This implementation should work for any 
+/// valid set of Syntax rules. 
+/// A second generic, `L`, is added in order to allow us to decouple this impl from any specific 
+/// Lexer impl. 
+/// Here we just copy and consume the fields of the ParserSpec in order to set this up.
+/// If we instead held a ParserSpec internally, we get borrow checker error messages. 
+/// Consider: 
+/// ```Rust
+/// let null_info = self.spec.get_null(&tk);
+/// ```
+/// This inherently borrows self.spec, which then borrows self as an outcome. 
+/// If instead you own the HashMaps, only those specific members are considered 
+/// borrowed by borrowck. 
 pub struct GeneralParser<T, L>
-    where T: Clone + Debug + Display + Eq + Hash + PartialEq + PartialOrd + Send + Sync + 'static, 
+    where T: Token + Send + Sync + 'static, 
           L: Lexer<T>
 {
-    null_map: HashMap<T, (PrecedenceLevel, fn(&mut dyn Parser<T>, T, PrecedenceLevel) -> Result<Node<T>, ParseError<T>>)>, 
-    left_map: HashMap<T, (PrecedenceLevel, PrecedenceLevel, fn(&mut dyn Parser<T>, T, PrecedenceLevel, Node<T>) -> Result<Node<T>, ParseError<T>>)>,
+    null_map: HashMap<Discriminant<T>, (PrecedenceLevel, fn(&mut dyn Parser<T>, T, PrecedenceLevel) -> Result<Node<T>, ParseError<T>>)>, 
+    left_map: HashMap<Discriminant<T>, (PrecedenceLevel, PrecedenceLevel, fn(&mut dyn Parser<T>, T, PrecedenceLevel, Node<T>) -> Result<Node<T>, ParseError<T>>)>,
     lexer: L, 
 }
 
-impl<T: Clone + Debug + Display + Eq + Hash + PartialEq + PartialOrd + Send + Sync + 'static, L: Lexer<T>> GeneralParser<T, L> {
+/// GeneralParser impl
+/// Wraps trait methods to allow users to only need to import this, without 
+/// the trait. Also offers a compile time check that GeneralParser still
+/// impls Parser correctly. 
+#[allow(dead_code)]
+impl<T: Token + Send + Sync + 'static, L: Lexer<T>> GeneralParser<T, L> {
     pub fn new(spec: ParserSpec<T>, lexer: L) -> GeneralParser<T, L> {
+        let (null_map, left_map) = spec.maps();
         GeneralParser {
-            null_map: spec.null_map.clone(), 
-            left_map: spec.left_map.clone(), 
+            null_map: null_map,
+            left_map: left_map,
             lexer: lexer
         }
     }
+
+    fn parse(&mut self) -> Result<Node<T>, ParseError<T>> {
+        self.parse_expr(PrecedenceLevel::Root)
+    }
+
+    fn parse_expr(&mut self, rbp: PrecedenceLevel) -> Result<Node<T>, ParseError<T>> {
+        <Self as Parser<T>>::parse_expr(self, rbp)
+    }
+
+    fn next_binds_tighter_than(&mut self, rbp: PrecedenceLevel) -> bool {
+        <Self as Parser<T>>::next_binds_tighter_than(self, rbp)
+    }
+
+    fn consume(&mut self, end_token: T) -> Result<(), ParseError<T>> {
+        <Self as Parser<T>>::consume(self, end_token)
+    }
 }
 
-impl<T: Clone + Debug + Display + Eq + Hash + PartialEq + PartialOrd + Send + Sync + 'static, L: Lexer<T>> Parser<T> for GeneralParser<T, L> {
+impl<T: Token + Send + Sync + 'static, L: Lexer<T>> Parser<T> for GeneralParser<T, L> {
     fn parse(&mut self) -> Result<Node<T>, ParseError<T>> {
         self.parse_expr(PrecedenceLevel::Root)
     }
@@ -85,20 +114,20 @@ impl<T: Clone + Debug + Display + Eq + Hash + PartialEq + PartialOrd + Send + Sy
         if let Some(tk) = self.lexer.peek() {
             self.lexer.next_token();
             let (lbp, func) = {
-                let val = self.null_map.get(&tk);
+                let val = self.null_map.get(&discriminant(&tk));
                 match val {
                     Some(val) => val.clone(), 
-                    None => return Err(ParseError::MissingRule {token: tk.clone()})
+                    None => return Err(ParseError::MissingRule {token: tk.clone(), ty: "Null".into()})
                 }
             };
             let mut left = func(self, tk, lbp)?;
             while self.next_binds_tighter_than(rbp) {
                 let tk = self.lexer.next_token(); //implied that token exists
                 let val = {
-                    let v = self.left_map.get(&tk);
+                    let v = self.left_map.get(&discriminant(&tk));
                     match v {
                         Some(val) => val.clone(), 
-                        None => continue
+                        None => return Err(ParseError::MissingRule {token: tk.clone(), ty: "Left".into()})
                     }
                 };
                 let (lbp, _, func) = val;
@@ -112,7 +141,7 @@ impl<T: Clone + Debug + Display + Eq + Hash + PartialEq + PartialOrd + Send + Sy
 
     fn next_binds_tighter_than(&mut self, rbp: PrecedenceLevel) -> bool {
         if let Some(tk) = self.lexer.peek() {
-            if let Some((_, next_rbp, _)) = self.left_map.get(&tk) {
+            if let Some((_, next_rbp, _)) = self.left_map.get(&discriminant(&tk)) {
                 *next_rbp > rbp
             } else {
                 false

@@ -1,4 +1,4 @@
-// macros.rs - MIT License
+// trait.rs - MIT License
 //  MIT License
 //  Copyright (c) 2018 Tyler Laing (ZerothLaw)
 // 
@@ -20,42 +20,24 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
-//! # Utility Macros
+//! # Token trait and blanket impl
+//! ## Rationale
+//! This makes it easier to define required trait bounds, 
+//! rather than using the long form. 
 //! 
-//! Three macros are provided:
-//!     add_null_assoc
-//!     add_left_assoc
-//!     add_left_right_assoc
-//!     
-//! These macros allow for the assignment of multiple tokens in one go, presented as
-//! an alternative to the ParserSpec.add_multi_null_assoc, etc methods
-//! 
+//! The reason for each trait is as follows:
+//!  * Clone - This is a useful utility trait to implement. It makes it easier to 
+//!            build an Abstract Syntax Tree without dealing with references and 
+//!            lifetimes. 
+//!  * Debug - Necessary impl for failure::Fail trait
+//!  * Display - Necessary impl for failure::Fail trait
+//!  * Hash - Necessary impl for use with HashMap in the ParserSpec 
+//!  * Ord  - Ord is defined as : Eq + PartialOrd, and Eq is : Partial Eq. We need
+//!           all three traits (PartialOrd, PartialEq, and Hash) for working with 
+//!           ParserSpec HashMap members
 
-//Utility macros to assign same left_binding_power/right_binding_power values and closures for tokens
+use std::fmt::{Debug, Display};
 
-#[macro_export]
-macro_rules! add_null_assoc {
-    ($spec:ident, $lbp:expr, ($($token:expr),* $(,)*) => $clsr:expr) => {
-        $(
-            $spec.add_null_assoc($token, $lbp, $clsr)?;
-        )*
-    };
-}
+pub trait Token:  Clone + Debug + Display + PartialEq  {}
 
-#[macro_export]
-macro_rules! add_left_assoc {
-    ($spec:ident, $lbp:expr, ($($token:expr),* $(,)*) => $clsr:expr) => {
-        $(
-            $spec.add_left_assoc($token, $lbp, $clsr)?;
-        )*
-    };
-}
-
-#[macro_export]
-macro_rules! add_left_right_assoc {
-    ($spec:ident, $lbp:expr, $rbp:expr, ($($token:expr),* $(,)*) => $clsr:expr) => {
-        $(
-            $spec.add_left_right_assoc($token, $lbp, $rbp, $clsr)?;
-        )*
-    };
-}
+impl<T> Token for T where T:  Clone + Debug + Display + PartialEq {}

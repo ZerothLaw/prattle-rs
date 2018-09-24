@@ -64,23 +64,36 @@
 //! ## Example
 //! 
 //! ```rust
-//! # #[macro_use]extern crate prattle;
-//! # use prattle::lexer::{Lexer, LexerVec};
-//! # use prattle::node::Node;
-//! # use prattle::parser::{GeneralParser, Parser};
-//! # use prattle::spec::ParserSpec;
-//! # use prattle::precedence::PrecedenceLevel;
+//! use std::fmt::{Display, Formatter, Error};
+//! 
+//! extern crate prattle;
+//! use prattle::prelude::*;
+//! 
+//! #[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+//! enum CToken {
+//!     Var(String), 
+//!     Add, 
+//!     Mul
+//! }
+//! 
+//! impl Display for CToken {
+//!     fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
+//!         write!(f, "{:?}", self)
+//!     }
+//! }
+//! 
 //! fn main() {
 //!     let mut spec = ParserSpec::new();
 //! 
-//!     add_null_assoc!(spec,  
+//!     spec.add_null_assoc(
+//!         CToken::Var("".to_string()),
 //!         PrecedenceLevel::Root, 
-//!         ("a".to_string(), "b".to_string(), "c".to_string(),)
-//!         => |_, tk: String, _|{
-//!             Ok(Node::Simple(tk.clone()))
-//!     });
+//!         |parser: &mut dyn Parser<CToken>, token, _| {
+//!             Ok(Node::Simple(token.clone()))
+//!         }
+//!     );
 //!     spec.add_left_assoc(
-//!         "+".to_string(), 
+//!         CToken::Add, 
 //!         PrecedenceLevel::First, 
 //!         |parser, token, lbp, node| {
 //!             Ok(Node::Composite{token: token.clone(), children: vec![
@@ -88,7 +101,7 @@
 //!                 parser.parse_expr(lbp)?]})
 //!     });
 //!     spec.add_left_assoc(
-//!         "*".to_string(), 
+//!         CToken::Mul, 
 //!         PrecedenceLevel::Second, 
 //!         |parser, token, lbp, node| {
 //!             Ok(Node::Composite{token: token.clone(), children: vec![
@@ -97,11 +110,11 @@
 //!     });
 //! 
 //!     let lexer = LexerVec::new(vec![
-//!         "a".to_string(), 
-//!         "+".to_string(), 
-//!         "b".to_string(), 
-//!         "*".to_string(), 
-//!         "c".to_string()
+//!         CToken::Var("a".to_string()),
+//!         CToken::Add, 
+//!         CToken::Var("b".to_string()), 
+//!         CToken::Mul, 
+//!         CToken::Var("c".to_string())
 //!     ]);
 //! 
 //!     let mut parser = GeneralParser::new(spec, lexer);
@@ -142,3 +155,25 @@ pub mod node;
 pub mod parser;
 pub mod precedence;
 pub mod spec;
+pub mod token;
+
+/// Handy prelude mod containing everything you need to get started. 
+pub mod prelude {
+    pub use errors::ParseError;
+    pub use lexer::{Lexer, LexerVec};
+    pub use node::Node;
+    pub use parser::{Parser, GeneralParser};
+    pub use precedence::PrecedenceLevel;
+    pub use spec::{ParserSpec, SpecificationError};
+    pub use token::Token;
+}
+
+//Little container mod for type aliases that are convenient and short
+pub mod types {
+    use super::prelude::*;
+    pub type NullDenotation<T> = fn(&mut dyn Parser<T>, T, PrecedenceLevel) -> Result<Node<T>, ParseError<T>>;
+    pub type LeftDenotation<T> = fn(&mut dyn Parser<T>, T, PrecedenceLevel, Node<T>) -> Result<Node<T>, ParseError<T>>;
+
+    pub type NullInfo<T> = (PrecedenceLevel, NullDenotation<T>);
+    pub type LeftInfo<T> = (PrecedenceLevel, PrecedenceLevel, LeftDenotation<T>);
+}

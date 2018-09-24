@@ -21,7 +21,7 @@
 //  SOFTWARE.
 
 //! # ParserSpec 
-//! The parser spec encapsulates the mapping of tokens with left/right binding 
+//! The parser spec encapsulates the mapping of tokens with null/left/right binding 
 //! precedences, as well as the actual syntax rule execution (such as a recursive
 //! call to the parser.)
 //! 
@@ -31,31 +31,41 @@
 //! 
 //! where T is your token type. 
 //! 
-//! Tokens must implement Clone + Debug + Display + Eq + Hash + PartialOrd + PartialEq.
+//! Tokens must implement the required traits: 
+//!     Clone + Debug + Display + PartialEq
+//! 
+//! Send + Sync + 'static are inherent and auto-implemented by the compiler on valid Token types.
+//! 
+//! ## Notes
+//! ParserSpec utilizes a "WriteOnce" pattern with the HashMaps where only the first 
+//! token -> syntax rule is recorded. This means later attempts to reassign the
+//! token -> syntax rule mapping are cause an error. 
 //! 
 
-use std::clone::Clone;
 use std::collections::{HashMap};
-use std::fmt::{Debug, Display};
-use std::hash::Hash;
 use std::marker::{Send, Sync};
+use std::mem::{discriminant, Discriminant};
 
-use errors::ParseError;
-use node::Node;
-use parser::Parser;
 use precedence::PrecedenceLevel;
+use token::Token;
+use types::*;
 
-pub type NullDenotation<T> = fn(&mut dyn Parser<T>, T, PrecedenceLevel) -> Result<Node<T>, ParseError<T>>;
-pub type LeftDenotation<T> = fn(&mut dyn Parser<T>, T, PrecedenceLevel, Node<T>) -> Result<Node<T>, ParseError<T>>;
-
-#[derive(Clone)]
-pub struct ParserSpec<T: Debug + Display + PartialOrd + PartialEq + Clone + Eq + Hash + Send + Sync + 'static> {
-    pub null_map: HashMap<T, (PrecedenceLevel, NullDenotation<T>)>, 
-    pub left_map: HashMap<T, (PrecedenceLevel, PrecedenceLevel, LeftDenotation<T>)>,
+/// This currently only indicates if your specification attempts to assign 
+/// more than one syntax rule to the same token, thus ending early before 
+/// trying to debug a bad parse. 
+#[derive(Clone, Debug, Fail)]
+pub enum SpecificationError<T: Token + Send + Sync + 'static> {
+    #[fail(display = "{} token -> rule mapping was already defined", tk)]
+    TokenToRuleAlreadyDefined{tk: T}
 }
 
-impl<T> ParserSpec<T>
-where T: Debug + Display + PartialOrd + PartialEq + Clone + Eq + Hash + Send + Sync + 'static
+#[derive(Clone)]
+pub struct ParserSpec<T: Token + Send + Sync + 'static> {
+    null_map: HashMap<Discriminant<T>, NullInfo<T>>, 
+    left_map: HashMap<Discriminant<T>, LeftInfo<T>>,
+}
+
+impl<T: Token + Send + Sync + 'static> ParserSpec<T>
 {
     pub fn new() -> ParserSpec<T> {
         ParserSpec {
@@ -64,34 +74,65 @@ where T: Debug + Display + PartialOrd + PartialEq + Clone + Eq + Hash + Send + S
         }
     }
 
-    pub fn add_null_assoc(&mut self, token: T, bp: PrecedenceLevel, func: NullDenotation<T>) {
-        if !self.null_map.contains_key(&token) {
-            self.null_map.insert(token.clone(), (bp, func));
+    pub fn add_null_assoc(&mut self, token: impl Into<T>, bp: PrecedenceLevel, func: NullDenotation<T>) -> Result<(), SpecificationError<T>> {
+        let token = token.into();
+        let disc = discriminant(&token);
+        if !self.null_map.contains_key(&disc) {
+            self.null_map.insert(disc, (bp, func));
+            Ok(())
+        } else {
+            Err(SpecificationError::TokenToRuleAlreadyDefined{tk: token})
         }
     }
 
-    pub fn add_left_assoc(&mut self, token: T, bp: PrecedenceLevel, func: LeftDenotation<T>) {
-        if !self.left_map.contains_key(&token) {
-            self.left_map.insert(token.clone(), (bp, bp, func));
+    pub fn add_left_assoc(&mut self, token: impl Into<T>, bp: PrecedenceLevel, func: LeftDenotation<T>) -> Result<(), SpecificationError<T>> {
+        let token = token.into();
+        let disc = discriminant(&token);
+        if !self.left_map.contains_key(&disc) {
+            self.left_map.insert(disc, (bp, bp, func));
+            Ok(())
+        } else {
+            Err(SpecificationError::TokenToRuleAlreadyDefined{tk: token})
         }
     }
 
-    pub fn add_left_right_assoc(&mut self, token: T, lbp: PrecedenceLevel, rbp: PrecedenceLevel, func: LeftDenotation<T>) {
-        if !self.left_map.contains_key(&token) {
-            self.left_map.insert(token.clone(), (lbp, rbp, func));
+    pub fn add_left_right_assoc(&mut self, token: impl Into<T>, lbp: PrecedenceLevel, rbp: PrecedenceLevel, func: LeftDenotation<T>) -> Result<(), SpecificationError<T>> {
+        let token = token.into();
+        let disc = discriminant(&token);
+        if !self.left_map.contains_key(&disc) {
+            self.left_map.insert(disc, (lbp, rbp, func));
+            Ok(())
+        } else {
+            Err(SpecificationError::TokenToRuleAlreadyDefined{tk: token})
         }
     }
 
-    pub fn add_multi_null_assoc<I: IntoIterator<Item=T>>(&mut self, tokens: I, bp: PrecedenceLevel, func: NullDenotation<T>) {
+    pub fn add_null_associations(&mut self, tokens: impl IntoIterator<Item=impl Into<T>>, bp: PrecedenceLevel, func: NullDenotation<T>) -> Result<(), SpecificationError<T>> {
         for token in tokens {
-            self.add_null_assoc(token, bp, func)
+            self.add_null_assoc(token, bp, func)?;
         }
+        Ok(())
     }
 
-    pub fn add_multi_left_assoc<I: IntoIterator<Item=T>>(&mut self, tokens: I, bp: PrecedenceLevel, func: LeftDenotation<T>) {
+    pub fn add_left_associations(&mut self, tokens: impl IntoIterator<Item=impl Into<T>>, bp: PrecedenceLevel, func: LeftDenotation<T>) -> Result<(), SpecificationError<T>> {
         for token in tokens {
-            self.add_left_assoc(token, bp, func)
+            self.add_left_assoc(token, bp, func)?;
         }
+        Ok(())
+    }
+
+    pub fn add_left_right_associations(&mut self, tokens: impl IntoIterator<Item=impl Into<T>>, lbp: PrecedenceLevel, rbp: PrecedenceLevel, func: LeftDenotation<T>) -> Result<(), SpecificationError<T>>{
+        for token in tokens {
+            self.add_left_right_assoc(token, lbp, rbp, func)?;
+        }
+        Ok(())
+    }
+
+    ///Consumes a spec and gets the HashMaps used for mapping tokens
+    /// to syntax rules. This avoids clones and allocations/deallocations 
+    /// of potentially large HashMaps when creating a Parser from the maps.
+    pub fn maps(self) -> (HashMap<Discriminant<T>, NullInfo<T>>, HashMap<Discriminant<T>, LeftInfo<T>>) {
+        return (self.null_map, self.left_map)
     }
 }
 

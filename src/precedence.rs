@@ -20,6 +20,26 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
+//! # Precendence Levels
+//! This is the most powerful, subtle, and easy to do incorrectly part of the 
+//! Pratt parser. Each token has a specific null/left/right binding power, 
+//! and to be processed, they need to be higher than the current context
+//! 
+//! This allows the algorithm/parser to naturally implement precedence climbing
+//! which is what basically says X operator is processed before other operators. 
+//! 
+//! ## Example
+//! > a + b * c
+//! 
+//! When mul is defined with a higher precedence than add, that results in the 
+//! following grouping:
+//! > a + (b * c)
+//! where b*c is done before the addition. Many languages have either a defined
+//! or implicit precedence ordering of operators. 
+//! 
+//! For example, see [C++ Operator Precedence table](https://en.cppreference.com/w/cpp/language/operator_precedence)
+//! 
+
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
