@@ -100,6 +100,7 @@ enum CToken {
     //syntactical tokens used during parsing
     DeclSpecs, //<declaration-specifier>*
     Ternary,
+    Postfix,
 }
 
 impl Display for CToken {
@@ -116,6 +117,7 @@ fn c_spec() -> Result<ParserSpec<CToken>, SpecificationError<CToken>> {
             CToken::IntConst("".to_string()), 
             CToken::ChrConst("".to_string()), 
             CToken::FltConst("".to_string()),
+            CToken::String("".to_string()),
         ], PrecedenceLevel::Root, |parser: &mut dyn Parser<CToken>, tk: CToken, lbp: PrecedenceLevel| {
         Ok(Node::Simple(tk.clone()))
     })?;
@@ -277,14 +279,153 @@ fn c_spec() -> Result<ParserSpec<CToken>, SpecificationError<CToken>> {
         let rhs = parser.parse_expr(PrecedenceLevel::Thirteen)?;
         Ok(Node::Composite{token: tk.clone(), children: vec![lhs, rhs]})
     })?;
-    spec.add_left_associations(vec![CToken::Mul, CToken::Div, CToken::Mod], PrecedenceLevel::Twelve, |parser, tk, _, lhs| {
-        let rhs = parser.parse_expr(PrecedenceLevel::Thirteen)?;
-        Ok(Node::Composite{token: tk.clone(), children: vec![lhs, rhs]})
+    spec.add_left_right_associations(
+        vec![CToken::LBrace, CToken::LParens], 
+        PrecedenceLevel::Sixth, 
+        PrecedenceLevel::First, 
+        |parser, token, lbp, node| {
+            let exprs = parser.parse_expr(lbp)?;
+            let end_t = match token {
+                CToken::LBrace => CToken::RBrace, 
+                CToken::LParens => CToken::RParens, 
+                _ => unreachable!()
+            };
+            parser.consume(end_t.clone())?;
+            Ok(Node::Composite{token: CToken::Postfix, children: vec![
+                node, Node::Simple(token.clone()), exprs, Node::Simple(end_t.clone())
+            ]})
+        }
+    )?;
+    spec.add_left_associations(vec![CToken::Dot, CToken::Deref], PrecedenceLevel::Sixth, 
+        |parser, tk, lbp, node| {
+            if let Err(ParseError::ConsumeFailed{expected: _, found: fnd}) = parser.consume(CToken::Ident("".to_string())) {
+                parser.consume(fnd.clone())?;
+                Ok(Node::Composite{token: tk.clone(), children: vec![node, Node::Simple(fnd)]})
+            } else {
+                Err(ParseError::MalformedSyntax{node: node, token: tk.clone()})
+            }
+        }
+    )?;
+    spec.add_left_associations(vec![CToken::Inc, CToken::Dec], PrecedenceLevel::Sixth, 
+        |parser, tk, lbp, node| {
+            Ok(Node::Composite{token: CToken::Postfix, children: vec![node, Node::Simple(tk.clone())]})
+        }
+    )?;
+    spec.add_null_associations(
+        vec![
+            CToken::Inc, CToken::Dec, CToken::Sizeof, 
+            CToken::And, CToken::Star, CToken::Add, 
+            CToken::Sub, CToken::BitNeg, CToken::Not
+        ], 
+        PrecedenceLevel::First, 
+        |parser, tk, lbp|{
+            Ok(Node::Composite{token: tk, children: vec![parser.parse_expr(PrecedenceLevel::Second)?]})
+        }
+    )?;
+    spec.add_null_assoc(CToken::LParens, PrecedenceLevel::First, |parser, _, _| {
+        parser.parse_expr(PrecedenceLevel::Second)
     })?;
+
+    spec.add_left_associations(
+        vec![
+            CToken::Equal, CToken::MulEq, CToken::DivEq, 
+            CToken::ModEq, CToken::AddEq, CToken::SubEq, 
+            CToken::ShlEq, CToken::ShrEq, CToken::AndEq, 
+            CToken::XorEq, CToken::OrEq], 
+        PrecedenceLevel::Seventh, 
+        |parser, tk, lbp, node| {
+            Ok(Node::Composite{token: tk.clone(), children: vec![node, parser.parse_expr(lbp)?]})
+        }
+    )?;
 
     Ok(spec)
 }
 
-fn main() {
+fn c_spec_2() -> Result<ParserSpec<CToken>, SpecificationError<CToken>> {
+    let mut spec = ParserSpec::new();
+    //label (identifier : statement)
+    //label ("case" expr : statement)
+    //label ("default" : statement)
+    spec.add_null_assoc(CToken::Default, PrecedenceLevel::Root, 
+        |parser, tk, lbp| {
+            if let Ok(()) = parser.consume(CToken::Colon) {
+                Ok(Node::Composite{token: tk, children: vec![parser.parse_expr(lbp)?]})
+            } else {
+                Err(ParseError::MalformedSyntax{node: Node::Simple(tk), token: CToken::Semicolon})
+            }
+        }
+    )?;
 
+    //expr stmt (expr? ;)
+
+    //select ("if" "(" expr ")" statement)
+    //select ("if" "(" expr ")" "else" statement)
+    //select ("switch" "(" expr ")" statement)
+
+    //iter ("while" "(" expr ")" statement)
+    //iter ("do" statement "while" "(" expr ")" ;)
+    //iter ("for" "(" expr? ; expr? ; expr? ")" statement)
+
+    //Jump ("goto" ident ;)
+    spec.add_null_assoc(CToken::Goto, PrecedenceLevel::Root, 
+        |parser, tk, _| {
+            if let Err(ParseError::ConsumeFailed{expected: _, found: fnd}) = parser.consume(CToken::Ident("".to_string())) {
+                parser.consume(fnd.clone())?;
+                if let Ok(()) = parser.consume(CToken::Semicolon) {
+                    Ok(Node::Composite{token: tk, children: vec![Node::Simple(fnd)]})
+                } else {
+                    Err(ParseError::MalformedSyntax{node: Node::Simple(tk), token: CToken::Semicolon})
+                }
+            } else {
+                Err(ParseError::MalformedSyntax{node: Node::Simple(tk), token: CToken::Ident("missing ident".to_string())})
+            }
+        }
+    )?;
+    //Jump (("continue" | "break") ;)
+    spec.add_null_associations(vec![CToken::Continue, CToken::Break], PrecedenceLevel::Root, 
+        |parser, tk, _|{
+            if let Ok(()) = parser.consume(CToken::Semicolon) {
+                Ok(Node::Composite{token: tk, children: Vec::new()})
+            } else {
+                Err(ParseError::MalformedSyntax{node: Node::Simple(tk), token: CToken::Semicolon})
+            }
+        }
+    )?;
+    //Jump ("return" expression? ;)
+    spec.add_null_assoc(CToken::Return, PrecedenceLevel::Root, |parser, tk, _| {
+            match parser.consume(CToken::Semicolon) {
+                Ok(_) => Ok(Node::Composite{token: CToken::Return, children: Vec::new()}), 
+                Err(ParseError::ConsumeFailed{expected: _, found: _}) => unimplemented!(), 
+                _ => unreachable!()
+            }
+        }
+    )?;
+    Ok(spec)
+}
+
+fn main() {
+    let spec = c_spec_2().unwrap();
+
+    let lexer = LexerVec::new(vec![
+        CToken::Goto, 
+        CToken::Ident("abc".to_string()), 
+        CToken::Semicolon,
+        CToken::Continue,
+        CToken::Semicolon,
+        CToken::Break,
+        CToken::Semicolon,
+        CToken::Return,
+        CToken::Semicolon,
+        CToken::Default, 
+        CToken::Colon, 
+        CToken::Return,
+        CToken::Semicolon,
+    ]);
+
+    let mut parser = GeneralParser::new(spec, lexer);
+    println!("{:?}", parser.parse());
+    println!("{:?}", parser.parse());
+    println!("{:?}", parser.parse());
+    println!("{:?}", parser.parse());
+    println!("{:?}", parser.parse());
 }
