@@ -37,7 +37,7 @@ Rust
 Cargo.toml line:
 ````
 [dependencies]
-prattle = "0.1.2"
+prattle = "0.1.3"
 ````
 
 ## License
