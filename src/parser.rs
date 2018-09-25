@@ -40,6 +40,7 @@ use std::marker::{Send, Sync};
 use std::mem::{Discriminant, discriminant};
 
 use prelude::*;
+use types::*;
 
 /// Parser trait. Theoretically, one could use different parser impls during parse of a 
 /// language and so the syntax rules need to not be tied to any specific Parser impl. 
@@ -68,8 +69,8 @@ pub struct GeneralParser<T, L>
     where T: Token + Send + Sync + 'static, 
           L: Lexer<T>
 {
-    null_map: HashMap<Discriminant<T>, (PrecedenceLevel, fn(&mut dyn Parser<T>, T, PrecedenceLevel) -> Result<Node<T>, ParseError<T>>)>, 
-    left_map: HashMap<Discriminant<T>, (PrecedenceLevel, PrecedenceLevel, fn(&mut dyn Parser<T>, T, PrecedenceLevel, Node<T>) -> Result<Node<T>, ParseError<T>>)>,
+    null_map: HashMap<Discriminant<T>, NullInfo<T>>, 
+    left_map: HashMap<Discriminant<T>, LeftInfo<T>>,
     lexer: L, 
 }
 

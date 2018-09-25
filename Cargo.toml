@@ -8,7 +8,7 @@ readme = "README.md"
 keywords = ["parser", "tdop", "pratt", "grammar"]
 categories = ["parsing"]
 repository = "https://github.com/ZerothLaw/prattle-rs"
-documentation = "https://docs.rs/prattle/0.1.1/prattle/"
+documentation = "https://docs.rs/prattle/0.1.2/prattle/"
 
 [dependencies]
 failure = "0.1.2"

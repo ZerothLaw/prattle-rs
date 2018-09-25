@@ -37,7 +37,7 @@ Rust
 Cargo.toml line:
 ````
 [dependencies]
-prattle = "0.1.2"
+prattle = "0.1.3"
 ````
 
 ## License
@@ -45,3 +45,4 @@ This project is licensed under the MIT License - see the license preamble in eac
 
 ## Acknowledgements
 * Rust developers and designers for an excellent language and environment
+* [purpleposeidon](https://github.com/purpleposeidon) who provided invaluable feedback in Prattle's early days
