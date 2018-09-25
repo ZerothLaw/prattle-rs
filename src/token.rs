@@ -31,10 +31,7 @@
 //!            lifetimes. 
 //!  * Debug - Necessary impl for failure::Fail trait
 //!  * Display - Necessary impl for failure::Fail trait
-//!  * Hash - Necessary impl for use with HashMap in the ParserSpec 
-//!  * Ord  - Ord is defined as : Eq + PartialOrd, and Eq is : Partial Eq. We need
-//!           all three traits (PartialOrd, PartialEq, and Hash) for working with 
-//!           ParserSpec HashMap members
+//!  * PartialEq - Necessary impl for the consume method in GeneralParser
 
 use std::fmt::{Debug, Display};
 
