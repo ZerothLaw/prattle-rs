@@ -54,6 +54,13 @@ pub enum PrecedenceLevel {
     Sixth   = 30, 
     Seventh = 35, 
     Eighth  = 40,
+    Ninth   = 45, 
+    Tenth   = 50,
+    Eleven  = 55,
+    Twelve  = 60, 
+    Thirteen = 65, 
+    Fourteen = 70,
+    Highest = 1000000,
 }
 
 impl Display for PrecedenceLevel {
