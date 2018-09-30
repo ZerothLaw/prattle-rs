@@ -117,9 +117,7 @@ impl<T: Token> Lexer<T> for LexerVec<T>
     /// (with bounds checking)
     fn next_token(&mut self) -> T {
         let t = self.inner[self.index].clone();
-        if self.index + 1 < self.inner.len() {
-            self.index += 1;
-        }
+        self.index += 1;
         t
     }
 

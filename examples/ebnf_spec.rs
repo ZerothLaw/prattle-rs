@@ -116,25 +116,6 @@ fn ebnf_spec() -> Result<ParserSpec<EBNFToken>, SpecificationError<EBNFToken>> {
     Ok(spec)
 }
 
-trait ExtendedParser: Parser<EBNFToken> {
-    fn parse_rules(&mut self) -> Vec<Result<Node<EBNFToken>, ParseError<EBNFToken>>>; 
-}
-
-impl ExtendedParser for GeneralParser<EBNFToken, LexerVec<EBNFToken>> {
-    fn parse_rules(&mut self) -> Vec<Result<Node<EBNFToken>, ParseError<EBNFToken>>> {
-        let mut rules = Vec::new();
-        while let Ok(node) = self.parse() {
-            rules.push(Ok(node));
-            match self.consume(EBNFToken::Semicolon) {
-                Err(ParseError::ConsumeFailed {expected: _, found: fnd}) => rules.push(Err(ParseError::MalformedSyntax{ node: Node::Simple(fnd), token: EBNFToken::Semicolon})), 
-                Ok(()) => continue, 
-                Err(pe) => rules.push(Err(pe)),
-            }
-        }
-        rules
-    }
-}
-
 fn main() {
     let spec = ebnf_spec().unwrap();
     let lexer = LexerVec::new(
@@ -205,5 +186,5 @@ fn main() {
         ]
     );
     let mut parser = GeneralParser::new(spec, lexer);
-    println!("{:?}", parser.parse_rules());
+    println!("{:?}", parser.parse_sequence(PrecedenceLevel::Root, Some(EBNFToken::Semicolon), None));
 }
