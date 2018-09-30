@@ -48,6 +48,11 @@ use types::*;
 pub trait Parser<T: Token + Send + Sync + 'static> {
     fn parse(&mut self) -> Result<Node<T>, ParseError<T>>;
     fn parse_expr(&mut self, rbp: PrecedenceLevel) -> Result<Node<T>, ParseError<T>>;
+    /// parse_sequence impl can be a bit complex - 
+    /// basically it *should* call parse_expr repeatedly with prec_level, 
+    /// while consuming an (optional) separator token, and then consuming 
+    /// an end token, or if there is no end token, consuming until we reach Incomplete
+    fn parse_sequence(&mut self, prec_level: PrecedenceLevel, sep: Option<T>, end_token: Option<T>) -> Vec<Result<Node<T>, ParseError<T>>>;
     fn next_binds_tighter_than(&mut self, rbp: PrecedenceLevel) -> bool;
     fn consume(&mut self, end_token: T) -> Result<(), ParseError<T>>;
 }
@@ -96,6 +101,10 @@ impl<T: Token + Send + Sync + 'static, L: Lexer<T>> GeneralParser<T, L> {
     fn parse_expr(&mut self, rbp: PrecedenceLevel) -> Result<Node<T>, ParseError<T>> {
         <Self as Parser<T>>::parse_expr(self, rbp)
     }
+    
+    fn parse_sequence(&mut self, prec_level: PrecedenceLevel, sep: Option<T>, end_token: Option<T>) -> Vec<Result<Node<T>, ParseError<T>>>{
+        <Self as Parser<T>>::parse_sequence(self, prec_level, sep, end_token)
+    }
 
     fn next_binds_tighter_than(&mut self, rbp: PrecedenceLevel) -> bool {
         <Self as Parser<T>>::next_binds_tighter_than(self, rbp)
@@ -138,6 +147,55 @@ impl<T: Token + Send + Sync + 'static, L: Lexer<T>> Parser<T> for GeneralParser<
         } else {
             Err(ParseError::Incomplete)
         }
+    }
+
+    fn parse_sequence(&mut self, prec_level: PrecedenceLevel, sep: Option<T>, end_token: Option<T>) -> Vec<Result<Node<T>, ParseError<T>>>{
+        let mut results = Vec::new();
+        loop {
+            let res = self.parse_expr(prec_level);
+            if res.is_ok() {
+                match &sep {
+                    &Some(ref sep) => {
+                        match self.consume(sep.clone()) {
+                            Ok(()) => {},  
+                            Err(ParseError::ConsumeFailed{expected: _, ref found}) => {
+                                match &end_token {
+                                    &Some(ref end_token) => {
+                                        if end_token == found {
+                                            match self.consume(found.clone()) {
+                                                Ok(()) => break,
+                                                Err(pe) => {
+                                                    results.push(Err(pe));
+                                                }
+                                            }
+                                        } else {
+                                            results.push(Err(ParseError::ConsumeFailed{expected: sep.clone(), found: found.clone()}));
+                                        }
+                                    }, 
+                                    &None => {
+                                        results.push(Err(ParseError::ConsumeFailed{expected: sep.clone(), found: found.clone()}));
+                                    }
+                                };
+                                break
+                            }, 
+                            Err(pe) => results.push(Err(pe))
+                        }
+                    }, 
+                    None => {},
+                }
+            } else {
+                match (&res, end_token) {
+                    (&Err(ParseError::Incomplete), None) => {
+                        return results;
+                    }, 
+                    _ => {}
+                };
+                results.push(res);
+                break
+            }
+            results.push(res);
+        };
+        results
     }
 
     fn next_binds_tighter_than(&mut self, rbp: PrecedenceLevel) -> bool {
