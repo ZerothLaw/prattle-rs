@@ -20,7 +20,7 @@
 //  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //  SOFTWARE.
 
-//! # Node enum
+//! # SimpleNode enum
 //! 
 //! This is a general purpose enum construct for representing parse trees. 
 //! 
@@ -39,21 +39,21 @@ use std::fmt::{Display, Error, Formatter};
 use token::Token;
 
 #[derive(Debug, Clone, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum Node<T: Token> {
-    Simple(T), 
+pub enum SimpleNode<T: Token> {
+    Plain(T), 
     Composite {
         token: T,
-        children: Vec<Node<T>>
+        children: Vec<SimpleNode<T>>
     }
 }
 
-impl<T: Token> Display for Node<T> {
+impl<T: Token> Display for SimpleNode<T> {
     fn fmt(&self, f: &mut Formatter) -> Result<(), Error>{
         write!(f,
             "{}", 
             match self {
-                Node::Simple(ref t) => format!("Simple({})", t), 
-                Node::Composite{
+                SimpleNode::Plain(ref t) => format!("Plain({})", t), 
+                SimpleNode::Composite{
                     token: ref t, 
                     children: ref childs
                 } => format!("Composite(token: {}, children: {:?})", t, childs )
@@ -69,12 +69,12 @@ mod test {
     #[test]
     fn test_node_send() {
         fn assert_send<T: Send>() {}
-        assert_send::<Node<String>>();
+        assert_send::<SimpleNode<String>>();
     }
 
     #[test]
     fn test_node_sync() {
         fn assert_sync<T: Sync>() {}
-        assert_sync::<Node<String>>();
+        assert_sync::<SimpleNode<String>>();
     }
 }

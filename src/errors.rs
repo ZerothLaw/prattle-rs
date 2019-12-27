@@ -30,7 +30,7 @@
 
 use std::marker::{Send, Sync};
 
-use node::Node;
+use node::SimpleNode;
 use token::Token;
 
 /// # ParseError
@@ -54,7 +54,7 @@ pub enum ParseError<T: Token + Send + Sync + 'static> {
     /// the syntax rule, and *token* for the token that lead to
     /// the error to be returned.
     #[fail(display = "incorrect syntax, failed on node: {} with token: {}", node, token)]
-    MalformedSyntax{ node: Node<T>, token: T }, 
+    MalformedSyntax{ node: SimpleNode<T>, token: T }, 
     /// Returned by the parser when a rule is not found for a specific token.
     /// Generally only should be seen during development of a language spec.
     #[fail(display = "missing a {} syntax rule for: {}", ty, token)]

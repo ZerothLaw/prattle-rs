@@ -64,53 +64,53 @@ fn ebnf_spec() -> Result<ParserSpec<EBNFToken>, SpecificationError<EBNFToken>> {
     let mut spec = ParserSpec::new();
 
     spec.add_null_associations(vec![EBNFToken::Ident("".to_string()), EBNFToken::String("".to_string())], PrecedenceLevel::Root, |_, tk, _| {
-        Ok(Node::Simple(tk))
+        Ok(SimpleNode::Plain(tk))
     })?;
 
     spec.add_left_assoc(EBNFToken::Colon, PrecedenceLevel::First, |parser, _, _, node| {
-            Ok(Node::Composite{token: EBNFToken::Rule, children: vec![node, parser.parse_expr(PrecedenceLevel::First)?]})
+            Ok(SimpleNode::Composite{token: EBNFToken::Rule, children: vec![node, parser.parse_expr(PrecedenceLevel::First)?]})
         }
     )?;
     spec.add_left_assoc(EBNFToken::Pipe, PrecedenceLevel::Second, |parser, tk, _, node| {
-            Ok(Node::Composite{token: tk, children: vec![node, parser.parse_expr(PrecedenceLevel::Second)?]})
+            Ok(SimpleNode::Composite{token: tk, children: vec![node, parser.parse_expr(PrecedenceLevel::Second)?]})
         }
     )?;
     spec.add_left_associations(vec![EBNFToken::Star, EBNFToken::Plus], PrecedenceLevel::Third, |_, tk, _, node| {
-            Ok(Node::Composite{token: EBNFToken::Repeats, children: vec![node, Node::Simple(tk)]})
+            Ok(SimpleNode::Composite{token: EBNFToken::Repeats, children: vec![node, SimpleNode::Plain(tk)]})
         }
     )?;
     spec.add_left_assoc(EBNFToken::Number("".to_string()), PrecedenceLevel::Third, |_, tk, _, node| {
         match node {
-            Node::Composite{token: EBNFToken::Repeats, mut children } => {
-                Ok(Node::Composite{ token: EBNFToken::Repeats, children: {children.push(Node::Simple(tk)); children}})
+            SimpleNode::Composite{token: EBNFToken::Repeats, mut children } => {
+                Ok(SimpleNode::Composite{ token: EBNFToken::Repeats, children: {children.push(SimpleNode::Plain(tk)); children}})
             }
             _ => {
-                Ok(Node::Composite{ token: EBNFToken::Repeats, children: vec![node, Node::Simple(tk)]})
+                Ok(SimpleNode::Composite{ token: EBNFToken::Repeats, children: vec![node, SimpleNode::Plain(tk)]})
             }, 
 
         }
     })?;
     spec.add_left_associations(vec![EBNFToken::String("".to_string()), EBNFToken::Ident("".to_string())], PrecedenceLevel::Third, |_, tk, _, node| {
         match node {
-            Node::Composite{token: c_tk, mut children} => {
-                children.push(Node::Simple(tk));
-                Ok(Node::Composite{token: c_tk, children: children})
+            SimpleNode::Composite{token: c_tk, mut children} => {
+                children.push(SimpleNode::Plain(tk));
+                Ok(SimpleNode::Composite{token: c_tk, children: children})
             }, 
-            Node::Simple(n_tk) => Ok(Node::Composite{token: EBNFToken::Sequence, children: vec![Node::Simple(n_tk), Node::Simple(tk)]})
+            SimpleNode::Plain(n_tk) => Ok(SimpleNode::Composite{token: EBNFToken::Sequence, children: vec![SimpleNode::Plain(n_tk), SimpleNode::Plain(tk)]})
         }
     })?;
     spec.add_null_assoc(EBNFToken::LBrace, PrecedenceLevel::Root, |parser, _, _| {
         let inner = parser.parse_expr(PrecedenceLevel::First)?;
         parser.consume(EBNFToken::RBrace)?;
-        Ok(Node::Composite{token: EBNFToken::Group, children: vec![inner]})
+        Ok(SimpleNode::Composite{token: EBNFToken::Group, children: vec![inner]})
     })?;
     spec.add_left_assoc(EBNFToken::LBrace, PrecedenceLevel::Fourth, |parser, _, _, node| {
         let inner = parser.parse_expr(PrecedenceLevel::First)?;
         parser.consume(EBNFToken::RBrace)?;
-        Ok(Node::Composite{token: EBNFToken::Sequence, children: vec![node, Node::Composite{token: EBNFToken::Group, children: vec![inner]}]}) //change this logic for token: Rule
+        Ok(SimpleNode::Composite{token: EBNFToken::Sequence, children: vec![node, SimpleNode::Composite{token: EBNFToken::Group, children: vec![inner]}]}) //change this logic for token: Rule
     })?;
     spec.add_left_assoc(EBNFToken::Question, PrecedenceLevel::Third, |_, _, _, node| {
-        Ok(Node::Composite{token: EBNFToken::Opt, children: vec![node]})
+        Ok(SimpleNode::Composite{token: EBNFToken::Opt, children: vec![node]})
     })?;
 
     Ok(spec)

@@ -45,14 +45,14 @@ use types::*;
 /// Parser trait. Theoretically, one could use different parser impls during parse of a 
 /// language and so the syntax rules need to not be tied to any specific Parser impl. 
 /// Hence why the ParserSpec uses closures with the signature ```&mut dyn Parser<T>```
-pub trait Parser<T: Token + Send + Sync + 'static> {
-    fn parse(&mut self) -> Result<Node<T>, ParseError<T>>;
-    fn parse_expr(&mut self, rbp: PrecedenceLevel) -> Result<Node<T>, ParseError<T>>;
+pub trait Parser<T: Token + Send + Sync + 'static, Node = SimpleNode<T>> {
+    fn parse(&mut self) -> Result<Node, ParseError<T>>;
+    fn parse_expr(&mut self, rbp: PrecedenceLevel) -> Result<Node, ParseError<T>>;
     /// parse_sequence impl can be a bit complex - 
     /// basically it *should* call parse_expr repeatedly with prec_level, 
     /// while consuming an (optional) separator token, and then consuming 
     /// an end token, or if there is no end token, consuming until we reach Incomplete
-    fn parse_sequence(&mut self, prec_level: PrecedenceLevel, sep: Option<T>, end_token: Option<T>) -> Vec<Result<Node<T>, ParseError<T>>>;
+    fn parse_sequence(&mut self, prec_level: PrecedenceLevel, sep: Option<T>, end_token: Option<T>) -> Vec<Result<Node, ParseError<T>>>;
     fn next_binds_tighter_than(&mut self, rbp: PrecedenceLevel) -> bool;
     fn consume(&mut self, end_token: T) -> Result<(), ParseError<T>>;
 }
@@ -70,12 +70,12 @@ pub trait Parser<T: Token + Send + Sync + 'static> {
 /// This inherently borrows self.spec, which then borrows self as an outcome. 
 /// If instead you own the HashMaps, only those specific members are considered 
 /// borrowed by borrowck. 
-pub struct GeneralParser<T, L>
+pub struct GeneralParser<T, L, Node = SimpleNode<T>>
     where T: Token + Send + Sync + 'static, 
           L: Lexer<T>
 {
-    null_map: HashMap<Discriminant<T>, NullInfo<T>>, 
-    left_map: HashMap<Discriminant<T>, LeftInfo<T>>,
+    null_map: HashMap<Discriminant<T>, NullInfo<T, Node>>, 
+    left_map: HashMap<Discriminant<T>, LeftInfo<T, Node>>,
     lexer: L, 
 }
 
@@ -84,8 +84,8 @@ pub struct GeneralParser<T, L>
 /// the trait. Also offers a compile time check that GeneralParser still
 /// impls Parser correctly. 
 #[allow(dead_code)]
-impl<T: Token + Send + Sync + 'static, L: Lexer<T>> GeneralParser<T, L> {
-    pub fn new(spec: ParserSpec<T>, lexer: L) -> GeneralParser<T, L> {
+impl<T: Token + Send + Sync + 'static, L: Lexer<T>, Node> GeneralParser<T, L, Node> {
+    pub fn new(spec: ParserSpec<T, Node>, lexer: L) -> GeneralParser<T, L, Node> {
         let (null_map, left_map) = spec.maps();
         GeneralParser {
             null_map: null_map,
@@ -94,33 +94,33 @@ impl<T: Token + Send + Sync + 'static, L: Lexer<T>> GeneralParser<T, L> {
         }
     }
 
-    fn parse(&mut self) -> Result<Node<T>, ParseError<T>> {
+    fn parse(&mut self) -> Result<Node, ParseError<T>> {
         self.parse_expr(PrecedenceLevel::Root)
     }
 
-    fn parse_expr(&mut self, rbp: PrecedenceLevel) -> Result<Node<T>, ParseError<T>> {
-        <Self as Parser<T>>::parse_expr(self, rbp)
+    fn parse_expr(&mut self, rbp: PrecedenceLevel) -> Result<Node, ParseError<T>> {
+        <Self as Parser<T, Node>>::parse_expr(self, rbp)
     }
     
-    fn parse_sequence(&mut self, prec_level: PrecedenceLevel, sep: Option<T>, end_token: Option<T>) -> Vec<Result<Node<T>, ParseError<T>>>{
-        <Self as Parser<T>>::parse_sequence(self, prec_level, sep, end_token)
+    fn parse_sequence(&mut self, prec_level: PrecedenceLevel, sep: Option<T>, end_token: Option<T>) -> Vec<Result<Node, ParseError<T>>>{
+        <Self as Parser<T, Node>>::parse_sequence(self, prec_level, sep, end_token)
     }
 
     fn next_binds_tighter_than(&mut self, rbp: PrecedenceLevel) -> bool {
-        <Self as Parser<T>>::next_binds_tighter_than(self, rbp)
+        <Self as Parser<T, Node>>::next_binds_tighter_than(self, rbp)
     }
 
     fn consume(&mut self, end_token: T) -> Result<(), ParseError<T>> {
-        <Self as Parser<T>>::consume(self, end_token)
+        <Self as Parser<T, Node>>::consume(self, end_token)
     }
 }
 
-impl<T: Token + Send + Sync + 'static, L: Lexer<T>> Parser<T> for GeneralParser<T, L> {
-    fn parse(&mut self) -> Result<Node<T>, ParseError<T>> {
+impl<T: Token + Send + Sync + 'static, L: Lexer<T>, Node> Parser<T, Node> for GeneralParser<T, L, Node> {
+    fn parse(&mut self) -> Result<Node, ParseError<T>> {
         self.parse_expr(PrecedenceLevel::Root)
     }
 
-    fn parse_expr(&mut self, rbp: PrecedenceLevel) -> Result<Node<T>, ParseError<T>> {
+    fn parse_expr(&mut self, rbp: PrecedenceLevel) -> Result<Node, ParseError<T>> {
         if let Some(tk) = self.lexer.peek() {
             self.lexer.next_token();
             let (lbp, func) = {
@@ -149,7 +149,7 @@ impl<T: Token + Send + Sync + 'static, L: Lexer<T>> Parser<T> for GeneralParser<
         }
     }
 
-    fn parse_sequence(&mut self, prec_level: PrecedenceLevel, sep: Option<T>, end_token: Option<T>) -> Vec<Result<Node<T>, ParseError<T>>>{
+    fn parse_sequence(&mut self, prec_level: PrecedenceLevel, sep: Option<T>, end_token: Option<T>) -> Vec<Result<Node, ParseError<T>>>{
         let mut results = Vec::new();
         loop {
             let res = self.parse_expr(prec_level);

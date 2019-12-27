@@ -44,20 +44,39 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub enum PrecedenceLevel {
-    Root    = 0, 
-    First   = 5, 
-    Second  = 10, 
-    Third   = 15, 
-    Fourth  = 20, 
-    Fifth   = 25, 
-    Sixth   = 30, 
-    Seventh = 35, 
-    Eighth  = 40,
+pub struct PrecedenceLevel(u32);
+
+macro_rules! levels {
+    ( $($name:ident = $val:literal),+ ) => {
+        $(
+            #[allow(non_upper_case_globals)]
+            pub const $name: PrecedenceLevel = PrecedenceLevel($val);
+        )+
+    }
+}
+
+impl PrecedenceLevel {
+    levels! (
+        Root = 0,
+        First = 5,
+        Second = 10,
+        Third = 15,
+        Fourth = 20,
+        Fifth = 25,
+        Sixth = 30,
+        Seventh = 35,
+        Eighth = 40
+    );
+
+    /// Arbitrary precedence higher than 40.
+    pub fn higher(x: u32) -> Self {
+        debug_assert!(x > 40, "User-provided precedence should be higher than 40 but was {}", x);
+        Self(x)
+    }
 }
 
 impl Display for PrecedenceLevel {
-    fn fmt(&self, f: &mut Formatter) -> Result<(), fmt::Error> {
-        write!(f, "(Precedence: {})", *self as u32)
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "(Precedence: {})", self.0)
     }
 }

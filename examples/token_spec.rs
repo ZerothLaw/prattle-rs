@@ -32,13 +32,13 @@ impl Display for CToken {
 fn token_spec() -> Result<ParserSpec<CToken>, SpecificationError<CToken>> {
     let mut spec = ParserSpec::new();
     add_null_assoc!(spec, PrecedenceLevel::Root, (CToken::Number("".to_string()), CToken::Ident("".to_string())) => |_, token: CToken, _| {
-        Ok(Node::Simple(token.clone()))
+        Ok(SimpleNode::Plain(token.clone()))
     });
     add_left_assoc!(spec, PrecedenceLevel::First, (CToken::Add, CToken::Sub) => |parser, token, lbp, node| {
-        Ok(Node::Composite { token: token.clone(), children: vec![node, parser.parse_expr(lbp)?] } )
+        Ok(SimpleNode::Composite { token: token.clone(), children: vec![node, parser.parse_expr(lbp)?] } )
     } );
     add_left_assoc!(spec, PrecedenceLevel::Second, (CToken::Mul, CToken::Div, CToken::Mod) => |parser, token, lbp, node| {
-        Ok(Node::Composite { token: token.clone(), children: vec![node, parser.parse_expr(lbp)?] } )
+        Ok(SimpleNode::Composite { token: token.clone(), children: vec![node, parser.parse_expr(lbp)?] } )
     } );
     add_null_assoc!(spec, PrecedenceLevel::First, (CToken::LParens) => |parser, _, lbp| {
         let res = parser.parse_expr(lbp)?;

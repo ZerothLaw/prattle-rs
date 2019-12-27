@@ -26,8 +26,8 @@
 //! call to the parser.)
 //! 
 //! ## Closure types:
-//! NullDenotation<T> = fn(&mut dyn Parser<T>, T, u32) -> Result<Node<T>, ParseError<T>>;
-//! LeftDenotation<T> = fn(&mut dyn Parser<T>, T, u32, Node<T>) -> Result<Node<T>, ParseError<T>>;
+//! NullDenotation<T> = fn(&mut dyn Parser<T>, T, u32) -> Result<SimpleNode<T>, ParseError<T>>;
+//! LeftDenotation<T> = fn(&mut dyn Parser<T>, T, u32, SimpleNode<T>) -> Result<SimpleNode<T>, ParseError<T>>;
 //! 
 //! where T is your token type. 
 //! 
@@ -46,6 +46,7 @@ use std::collections::{HashMap};
 use std::marker::{Send, Sync};
 use std::mem::{discriminant, Discriminant};
 
+use node::SimpleNode;
 use precedence::PrecedenceLevel;
 use token::Token;
 use types::*;
@@ -60,21 +61,21 @@ pub enum SpecificationError<T: Token + Send + Sync + 'static> {
 }
 
 #[derive(Clone)]
-pub struct ParserSpec<T: Token + Send + Sync + 'static> {
-    null_map: HashMap<Discriminant<T>, NullInfo<T>>, 
-    left_map: HashMap<Discriminant<T>, LeftInfo<T>>,
+pub struct ParserSpec<T: Token + Send + Sync + 'static, Node = SimpleNode<T>> {
+    null_map: HashMap<Discriminant<T>, NullInfo<T, Node>>, 
+    left_map: HashMap<Discriminant<T>, LeftInfo<T, Node>>,
 }
 
-impl<T: Token + Send + Sync + 'static> ParserSpec<T>
+impl<T: Token + Send + Sync + 'static, Node> ParserSpec<T, Node>
 {
-    pub fn new() -> ParserSpec<T> {
+    pub fn new() -> Self {
         ParserSpec {
             null_map: HashMap::new(), 
             left_map: HashMap::new(),
         }
     }
 
-    pub fn add_null_assoc(&mut self, token: impl Into<T>, bp: PrecedenceLevel, func: NullDenotation<T>) -> Result<(), SpecificationError<T>> {
+    pub fn add_null_assoc(&mut self, token: impl Into<T>, bp: PrecedenceLevel, func: NullDenotation<T, Node>) -> Result<(), SpecificationError<T>> {
         let token = token.into();
         let disc = discriminant(&token);
         if !self.null_map.contains_key(&disc) {
@@ -85,7 +86,7 @@ impl<T: Token + Send + Sync + 'static> ParserSpec<T>
         }
     }
 
-    pub fn add_left_assoc(&mut self, token: impl Into<T>, bp: PrecedenceLevel, func: LeftDenotation<T>) -> Result<(), SpecificationError<T>> {
+    pub fn add_left_assoc(&mut self, token: impl Into<T>, bp: PrecedenceLevel, func: LeftDenotation<T, Node>) -> Result<(), SpecificationError<T>> {
         let token = token.into();
         let disc = discriminant(&token);
         if !self.left_map.contains_key(&disc) {
@@ -96,7 +97,7 @@ impl<T: Token + Send + Sync + 'static> ParserSpec<T>
         }
     }
 
-    pub fn add_left_right_assoc(&mut self, token: impl Into<T>, lbp: PrecedenceLevel, rbp: PrecedenceLevel, func: LeftDenotation<T>) -> Result<(), SpecificationError<T>> {
+    pub fn add_left_right_assoc(&mut self, token: impl Into<T>, lbp: PrecedenceLevel, rbp: PrecedenceLevel, func: LeftDenotation<T, Node>) -> Result<(), SpecificationError<T>> {
         let token = token.into();
         let disc = discriminant(&token);
         if !self.left_map.contains_key(&disc) {
@@ -107,21 +108,21 @@ impl<T: Token + Send + Sync + 'static> ParserSpec<T>
         }
     }
 
-    pub fn add_null_associations(&mut self, tokens: impl IntoIterator<Item=impl Into<T>>, bp: PrecedenceLevel, func: NullDenotation<T>) -> Result<(), SpecificationError<T>> {
+    pub fn add_null_associations(&mut self, tokens: impl IntoIterator<Item=impl Into<T>>, bp: PrecedenceLevel, func: NullDenotation<T, Node>) -> Result<(), SpecificationError<T>> {
         for token in tokens {
             self.add_null_assoc(token, bp, func)?;
         }
         Ok(())
     }
 
-    pub fn add_left_associations(&mut self, tokens: impl IntoIterator<Item=impl Into<T>>, bp: PrecedenceLevel, func: LeftDenotation<T>) -> Result<(), SpecificationError<T>> {
+    pub fn add_left_associations(&mut self, tokens: impl IntoIterator<Item=impl Into<T>>, bp: PrecedenceLevel, func: LeftDenotation<T, Node>) -> Result<(), SpecificationError<T>> {
         for token in tokens {
             self.add_left_assoc(token, bp, func)?;
         }
         Ok(())
     }
 
-    pub fn add_left_right_associations(&mut self, tokens: impl IntoIterator<Item=impl Into<T>>, lbp: PrecedenceLevel, rbp: PrecedenceLevel, func: LeftDenotation<T>) -> Result<(), SpecificationError<T>>{
+    pub fn add_left_right_associations(&mut self, tokens: impl IntoIterator<Item=impl Into<T>>, lbp: PrecedenceLevel, rbp: PrecedenceLevel, func: LeftDenotation<T, Node>) -> Result<(), SpecificationError<T>>{
         for token in tokens {
             self.add_left_right_assoc(token, lbp, rbp, func)?;
         }
@@ -131,7 +132,7 @@ impl<T: Token + Send + Sync + 'static> ParserSpec<T>
     ///Consumes a spec and gets the HashMaps used for mapping tokens
     /// to syntax rules. This avoids clones and allocations/deallocations 
     /// of potentially large HashMaps when creating a Parser from the maps.
-    pub fn maps(self) -> (HashMap<Discriminant<T>, NullInfo<T>>, HashMap<Discriminant<T>, LeftInfo<T>>) {
+    pub fn maps(self) -> (HashMap<Discriminant<T>, NullInfo<T, Node>>, HashMap<Discriminant<T>, LeftInfo<T, Node>>) {
         return (self.null_map, self.left_map)
     }
 }
